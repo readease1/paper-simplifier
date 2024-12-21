@@ -83,40 +83,44 @@ const storage = multer.diskStorage({
     }
 });
 
-// Configure multer BEFORE cors
+// Configure multer with error handling
 const upload = multer({ 
     storage: storage,
     limits: {
         fileSize: 10 * 1024 * 1024 // 10MB limit
     }
-});
+}).single('file');
 
-// Request logging middleware
+// Request logging middleware for debugging
 app.use((req, res, next) => {
     console.log('Incoming request:', {
-        path: req.path,
         method: req.method,
-        contentType: req.headers['content-type']
+        path: req.path,
+        headers: req.headers,
+        body: req.body
     });
     next();
 });
 
-// CORS configuration
+// Updated CORS configuration
 app.use(cors({
-    origin: true, // Accept all origins in development
+    origin: ['https://readease.wtf', 'http://localhost:3000'],
     methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 200
 }));
 
-// Additional CORS headers
+// Additional CORS headers middleware
 app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin);
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
     
+    // Handle preflight requests
     if (req.method === 'OPTIONS') {
-        return res.status(200).json({ status: 'ok' });
+        return res.status(200).end();
     }
     
     next();
@@ -324,98 +328,92 @@ Question about this paper: ${message}`
     }
 });
 
-// Enhanced API endpoint to process paper with improved error handling
-app.post('/api/process', upload.single('file'), async (req, res) => {
-    console.log('Received upload request:', {
-        method: req.method,
-        contentType: req.headers['content-type'],
-        file: req.file ? 'Present' : 'Missing'
-    });
-
-    try {
+// Modified upload endpoint with explicit error handling
+app.post('/api/process', (req, res) => {
+    upload(req, res, async function(err) {
+        if (err) {
+            console.error('Multer error:', err);
+            return res.status(400).json({ error: err.message });
+        }
+        
         if (!req.file) {
             console.error('No file uploaded');
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        console.log('File details:', {
-            filename: req.file.originalname,
-            path: req.file.path,
-            size: req.file.size
-        });
-
-        // Check if file exists
-        if (!fs.existsSync(req.file.path)) {
-            console.error('File not found after upload:', req.file.path);
-            return res.status(500).json({ error: 'File not found after upload' });
-        }
-
-        const dataBuffer = fs.readFileSync(req.file.path);
-        console.log('File read successful, size:', dataBuffer.length);
-
-        const data = await pdfParse(dataBuffer);
-        console.log('PDF parsing successful, text length:', data.text.length);
-
-        if (isProcessing) {
-            queue.push({ text: data.text, res });
-            return;
-        }
-
-        isProcessing = true;
-        const result = await generateSummaries(data.text);
-        
-        // Save to database with error handling
         try {
-            await db.run(`
-                INSERT INTO papers (
-                    title, text, child_summary, college_summary, phd_summary, 
-                    citations, key_findings, fact_check, category, input_tokens, output_tokens, 
-                    cost, processing_time
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-                req.file.originalname,
-                data.text,
-                result.summaries.child,
-                result.summaries.college,
-                result.summaries.phd,
-                result.citations,
-                result.findings,
-                result.factCheck,
-                result.category,
-                result.stats.inputTokens,
-                result.stats.outputTokens,
-                result.stats.cost,
-                result.stats.processingTime
-            ]);
-            console.log('Database insert successful');
-        } catch (dbError) {
-            console.error('Database error:', dbError);
+            if (!fs.existsSync(req.file.path)) {
+                console.error('File not found after upload:', req.file.path);
+                return res.status(500).json({ error: 'File not found after upload' });
+            }
+
+            const dataBuffer = fs.readFileSync(req.file.path);
+            console.log('File read successful, size:', dataBuffer.length);
+
+            const data = await pdfParse(dataBuffer);
+            console.log('PDF parsing successful, text length:', data.text.length);
+
+            if (isProcessing) {
+                queue.push({ text: data.text, res });
+                return;
+            }
+
+            isProcessing = true;
+            const result = await generateSummaries(data.text);
+            
+            // Save to database with error handling
+            try {
+                await db.run(`
+                    INSERT INTO papers (
+                        title, text, child_summary, college_summary, phd_summary, 
+                        citations, key_findings, fact_check, category, input_tokens, output_tokens, 
+                        cost, processing_time
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    req.file.originalname,
+                    data.text,
+                    result.summaries.child,
+                    result.summaries.college,
+                    result.summaries.phd,
+                    result.citations,
+                    result.findings,
+                    result.factCheck,
+                    result.category,
+                    result.stats.inputTokens,
+                    result.stats.outputTokens,
+                    result.stats.cost,
+                    result.stats.processingTime
+                ]);
+                console.log('Database insert successful');
+            } catch (dbError) {
+                console.error('Database error:', dbError);
+            }
+
+            // Cleanup uploaded file
+            try {
+                fs.unlinkSync(req.file.path);
+                console.log('Temporary file cleaned up');
+            } catch (cleanupError) {
+                console.error('File cleanup error:', cleanupError);
+            }
+
+            isProcessing = false;
+
+            if (queue.length > 0) {
+                const next = queue.shift();
+                generateSummaries(next.text)
+                    .then(sum => next.res.json(sum))
+                    .catch(err => next.res.status(500).json({ error: err.message }));
+            }
+
+            res.json(result);
+
+        } catch (error) {
+            console.error('Error processing request:', error);
+            isProcessing = false;
+            res.status(500).json({ error: error.message });
         }
-
-        isProcessing = false;
-
-        if (queue.length > 0) {
-            const next = queue.shift();
-            generateSummaries(next.text)
-                .then(sum => next.res.json(sum))
-                .catch(err => next.res.status(500).json({ error: err.message }));
-        }
-
-        // Cleanup uploaded file
-        try {
-            fs.unlinkSync(req.file.path);
-            console.log('Temporary file cleaned up');
-        } catch (cleanupError) {
-            console.error('File cleanup error:', cleanupError);
-        }
-
-        res.json(result);
-
-    } catch (error) {
-        console.error('Error processing request:', error);
-        isProcessing = false;
-        res.status(500).json({ error: error.message });
-    }
+    });
 });
 
 // Enhanced recent papers endpoint with error logging
