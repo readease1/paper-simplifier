@@ -321,6 +321,82 @@
             border-radius: 12px;
             font-size: 0.8rem;
         }
+        /* New FAQ Terminal Styles */
+        .faq-button {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0 auto;
+            display: block;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .faq-button:hover {
+            transform: scale(1.05);
+        }
+        .terminal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .terminal {
+            background: #1a1a1a;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .terminal-header {
+            background: #333;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .terminal-title {
+            color: #fff;
+            font-family: monospace;
+        }
+        .terminal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+        .terminal-content {
+            padding: 20px;
+            font-family: monospace;
+            color: #00ff00;
+            font-size: 16px;
+            line-height: 1.6;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .cursor {
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .terminal-text {
+            white-space: pre-wrap;
+        }
     </style>
 </head>
 <body>
@@ -332,6 +408,7 @@
             accessible for different education levels 📚 🎓 🔍
         </p>
         
+        <button class="faq-button" onclick="showFAQ()">What is Readease? 🤖</button>
         <div class="token-box">
             Research funded by <span class="token-text">$READ</span> token
         </div>
@@ -434,7 +511,22 @@
             <h2>Recently Analyzed Papers</h2>
             <div id="recentPapers"></div>
         </div>
+
+        <!-- FAQ Terminal Overlay -->
+        <div class="terminal-overlay" id="faqOverlay" onclick="hideFAQ()">
+            <div class="terminal" onclick="event.stopPropagation()">
+                <div class="terminal-header">
+                    <span class="terminal-title">ReadEase AI Terminal</span>
+                    <button class="terminal-close" onclick="hideFAQ()">×</button>
+                </div>
+                <div class="terminal-content" id="terminalContent">
+                    <div class="terminal-text" id="terminalText"></div>
+                    <div class="cursor">_</div>
+                </div>
+            </div>
+        </div>
     </div>
+
     <script>
         let currentPaperContent = '';
         let currentCategory = null;
@@ -444,6 +536,57 @@
             await loadRecentPapers();
             await loadGlobalStats();
         });
+
+        // Add new FAQ functions
+        function showFAQ() {
+            const overlay = document.getElementById('faqOverlay');
+            const terminalText = document.getElementById('terminalText');
+            overlay.style.display = 'flex';
+            
+            const text = `> Welcome to ReadEase - Your AI Research Assistant! 🤖
+
+> What is ReadEase?
+ReadEase is an advanced AI-powered tool designed to make academic papers more accessible to readers of all levels. It uses state-of-the-art natural language processing to analyze and simplify complex academic content.
+
+> Key Features:
+- Multi-level summaries (Child, College, PhD)
+- Citation analysis and verification
+- Fact-checking and numerical validation
+- Real-time AI chat assistance
+- PDF and Word export capabilities
+- Readability metrics and analysis
+
+> How to use ReadEase:
+1. Upload your academic paper (PDF format)
+2. Wait for our AI to process the document
+3. Explore different summaries and analyses
+4. Use the chat feature for specific questions
+5. Export results in your preferred format
+
+> Technical Details:
+- Powered by OpenAI's GPT-3.5
+- Research funded by $READ token
+- Continuous learning and improvement
+- Regular model updates and enhancements
+
+Type 'help' for more information...
+`;
+            let i = 0;
+            function typeWriter() {
+                if (i < text.length) {
+                    terminalText.textContent += text.charAt(i);
+                    terminalContent.scrollTop = terminalContent.scrollHeight;
+                    i++;
+                    setTimeout(typeWriter, 10);
+                }
+            }
+            terminalText.textContent = '';
+            typeWriter();
+        }
+
+        function hideFAQ() {
+            document.getElementById('faqOverlay').style.display = 'none';
+        }
 
         async function loadCategories() {
             try {
