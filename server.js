@@ -6,6 +6,7 @@ const pdfParse = require('pdf-parse');
 const sqlite3 = require('sqlite3').verbose();
 const { open } = require('sqlite');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 // Initialize database
@@ -37,14 +38,32 @@ let db;
 })();
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
 
-// Initialize OpenAI
-const openAI = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY
+// Define the upload directory and configure multer
+const uploadDir = process.env.NODE_ENV === 'production' ? '/tmp/uploads' : './uploads';
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+    },
 });
 
-app.use(cors());
+const upload = multer({ storage: storage });
+
+// Set up CORS with specific origins
+app.use(cors({
+    origin: ['https://your-webflow-site.com', 'http://localhost:3000'],
+    methods: ['GET', 'POST'],
+    credentials: true
+}));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
