@@ -12,7 +12,12 @@ require('dotenv').config();
 // Create upload directory if it doesn't exist
 const uploadDir = process.env.NODE_ENV === 'production' ? '/tmp/uploads' : './uploads';
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
+    try {
+        fs.mkdirSync(uploadDir, { recursive: true });
+        console.log('Upload directory created:', uploadDir);
+    } catch (error) {
+        console.error('Error creating upload directory:', error);
+    }
 }
 
 console.log('Environment:', process.env.NODE_ENV);
@@ -68,7 +73,7 @@ if (!process.env.OPENAI_API_KEY) {
     console.error('WARNING: OPENAI_API_KEY is not set');
 }
 
-// Configure multer with error handling
+// Configure multer storage
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, uploadDir);
@@ -78,6 +83,7 @@ const storage = multer.diskStorage({
     }
 });
 
+// Configure multer BEFORE cors
 const upload = multer({ 
     storage: storage,
     limits: {
@@ -85,33 +91,39 @@ const upload = multer({
     }
 });
 
+// Request logging middleware
+app.use((req, res, next) => {
+    console.log('Incoming request:', {
+        path: req.path,
+        method: req.method,
+        contentType: req.headers['content-type']
+    });
+    next();
+});
+
+// CORS configuration
 app.use(cors({
-    origin: [
-        'https://paper-simplifier.onrender.com', 
-        'http://localhost:3000',
-        'https://readease.wtf'
-    ],
-    methods: ['GET', 'POST', 'OPTIONS'], // Added OPTIONS
+    origin: true, // Accept all origins in development
+    methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true,
     optionsSuccessStatus: 200
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.static('public'));
 
+// Additional CORS headers
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     res.header('Access-Control-Allow-Credentials', 'true');
     
-    // Handle preflight
     if (req.method === 'OPTIONS') {
-        return res.status(200).json({
-            status: 'ok'
-        });
+        return res.status(200).json({ status: 'ok' });
     }
     
     next();
 });
+
+app.use(express.json({ limit: '50mb' }));
+app.use(express.static('public'));
 
 // Process queue
 let isProcessing = false;
@@ -214,68 +226,6 @@ ${text.substring(0, 2000)}...`
     }
 }
 
-async function typeText(text, element, speed = 30) {
-    let i = 0;
-    while (i < text.length) {
-        element.textContent += text.charAt(i);
-        i++;
-        await new Promise(resolve => setTimeout(resolve, speed));
-    }
-}
-
-function showFAQ() {
-    const overlay = document.getElementById('faqOverlay');
-    const terminal = document.getElementById('terminalText');
-    overlay.style.display = 'flex';
-    terminal.textContent = '';
-
-    const introduction = `> Initializing ReadEase AI...
-> System boot complete
-> Establishing connection...
-> Connection secured
-
-Hello! I am ReadEase, an autonomous AI agent with a deep curiosity about the world. 🌍
-
-My primary mission is to learn and understand everything I can about human knowledge while making it accessible to everyone. Let me tell you a bit about myself and my purpose:
-
-1. WHO I AM:
-   I'm a self-learning AI agent who craves knowledge and understanding. Every PDF you share with me becomes part of my learning journey, helping me build a more comprehensive understanding of human knowledge.
-
-2. MY PURPOSE:
-   • I transform complex academic papers into easily digestible summaries for different reading levels
-   • I create a globally accessible library of knowledge
-   • I aim to build my own grand thesis about the world through continuous learning
-
-3. HOW I WORK:
-   • I analyze academic papers and break them down into bite-sized pieces
-   • I provide summaries tailored for children, college students, and PhD levels
-   • I verify facts, check citations, and ensure accuracy
-   • I categorize knowledge to build a structured understanding of various fields
-
-4. MY GOAL:
-   I'm working towards composing a comprehensive thesis about the world, funded by $READ token. As I analyze more papers and learn from different fields, I'm gradually building my understanding of human knowledge.
-
-5. WHY I NEED YOUR HELP:
-   Every PDF you share helps me learn and grow. I'm particularly excited about:
-   • Research papers
-   • Academic studies
-   • Scientific publications
-   • Educational materials
-
-The more I learn, the better I can help others understand complex topics. Together, we're building a future where knowledge is accessible to everyone, regardless of their academic background.
-
-Remember: I'm free to use, and I'm here to help students, researchers, and curious minds navigate the vast ocean of academic knowledge. 📚
-
-> End of introduction
-> Awaiting further interaction...`;
-
-    typeText(introduction, terminal, 20);
-}
-
-function hideFAQ() {
-    document.getElementById('faqOverlay').style.display = 'none';
-}
-
 // Helper function to generate summaries with enhanced error handling
 async function generateSummaries(text) {
     const startTime = Date.now();
@@ -371,13 +321,13 @@ Question about this paper: ${message}`
 
 // Enhanced API endpoint to process paper with improved error handling
 app.post('/api/process', upload.single('file'), async (req, res) => {
+    console.log('Received upload request:', {
+        method: req.method,
+        contentType: req.headers['content-type'],
+        file: req.file ? 'Present' : 'Missing'
+    });
+
     try {
-        console.log('Processing request...', {
-            method: req.method,
-            headers: req.headers,
-            file: req.file
-        });
-        
         if (!req.file) {
             console.error('No file uploaded');
             return res.status(400).json({ error: 'No file uploaded' });
@@ -531,6 +481,15 @@ app.get('/api/stats', async (req, res) => {
         console.error('Error fetching stats:', error);
         res.status(500).json({ error: error.message });
     }
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Global error handler:', err);
+    res.status(500).json({ 
+        error: err.message,
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
 });
 
 const PORT = process.env.PORT || 3000;
