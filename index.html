@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadEase - Academic Paper Simplifier</title>
+    <style>
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2e1065;
+            --text-primary: #ffffff;
+            --text-secondary: #e5e7eb;
+            --accent: #a3e635;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f4f6;
+            --bg-tertiary: #e5e7eb;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4b5563;
+            --accent: #2563eb;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+        h1 {
+            color: var(--accent);
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .token-box {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .token-text {
+            color: var(--accent);
+        }
+        .token-address {
+            font-family: monospace;
+            background: var(--bg-secondary);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .social-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .social-button {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .social-button:hover {
+            transform: translateY(-2px);
+        }
+        .categories-box {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .category-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .category-button {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .category-button:hover,
+        .category-button.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+        .paper-box {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        .upload-box {
+            border: 2px dashed var(--bg-tertiary);
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .upload-box:hover {
+            border-color: var(--accent);
+        }
+        .summaries-box {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .summary-section {
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+        }
+        .summary-section:before {
+            content: '💡';
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .summary-section.college:before {
+            content: '🎓';
+        }
+        .summary-section.phd:before {
+            content: '🔬';
+        }
+        .paper-title {
+            color: var(--accent);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+        .paper-link {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 15px;
+        }
+        .status-box {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-icon {
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+        .stats {
+            float: right;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .cost {
+            color: var(--accent);
+        }
+        .citations-box, .findings-box, .fact-check-box {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+        }
+        .fact-check-box h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .fact-check-box h3::before {
+            content: '🔍';
+        }
+        .recent-papers {
+            margin-top: 40px;
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .paper-card {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .paper-card:hover {
+            background: #3b1a79;
+        }
+        .readability-scores {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .score-card {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .export-button {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .export-button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .chat-container {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-top: 20px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .user-message {
+            background: var(--bg-tertiary);
+            align-self: flex-end;
+        }
+        .ai-message {
+            background: var(--accent);
+            color: var(--bg-primary);
+            align-self: flex-start;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--accent);
+        }
+        .error {
+            color: #ef4444;
+            text-align: center;
+            padding: 10px;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-tertiary);
+            position: relative;
+            margin: 20px 0;
+            display: none;
+            overflow: hidden;
+        }
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 20%;
+            background: var(--accent);
+            animation: progress 2s infinite;
+        }
+        @keyframes progress {
+            0% { left: -20%; }
+            100% { left: 100%; transform: translateX(-100%); }
+        }
+        .paper-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .category-tag {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
+        .faq-button {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0 auto;
+            display: block;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .faq-button:hover {
+            transform: scale(1.05);
+        }
+        .terminal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .terminal {
+            background: #1a1a1a;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        .terminal-header {
+            background: #333;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .terminal-title {
+            color: #fff;
+            font-family: monospace;
+        }
+        .terminal-close {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0 10px;
+        }
+        .terminal-content {
+            padding: 20px;
+            font-family: monospace;
+            color: #00ff00;
+            font-size: 16px;
+            line-height: 1.6;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .cursor {
+            display: inline-block;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        .terminal-text {
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
+        <h1>readease</h1>
+        <p class="subtitle">
+            An autonomous AI agent powered by OpenAI's GPT-3.5 model, making academic papers 
+            accessible for different education levels 📚 🎓 🔍
+        </p>
+        
+        <button class="faq-button" onclick="showFAQ()">What is Readease? 🤖</button>
+        
+        <!-- Updated Token Box -->
+        <div class="token-box">
+            Research funded by <span class="token-text">$READ</span> token
+            <div class="token-address">
+                Support $READ: BXcohohQ6UKLQCfStez6LZfT8QppBp67YAKL5besU6B9
+            </div>
+            <div class="social-buttons">
+                <a href="https://x.com/tickerread" target="_blank" rel="noopener noreferrer" class="social-button">
+                    🐦 Twitter
+                </a>
+                <a href="https://pump.fun" target="_blank" rel="noopener noreferrer" class="social-button">
+                    📈 Pump.fun
+                </a>
+            </div>
+        </div>
+
+        <div class="categories-box">
+            <h3>Browse by Category</h3>
+            <div class="category-list" id="categoryList">
+                <!-- Categories will be populated here -->
+            </div>
+        </div>
+
+        <div class="progress-bar" id="progressBar"></div>
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" hidden accept=".pdf" onchange="handleFileUpload(event)">
+            Drop your academic paper here or click to upload (PDF only)
+        </div>
+
+        <div id="loading">Processing paper...</div>
+        <div id="error" class="error"></div>
+
+        <div class="stat-grid" id="globalStats">
+            <!-- Global stats will be populated here -->
+        </div>
+
+        <div id="results" class="paper-box" style="display: none">
+            <div id="paperTitle" class="paper-title"></div>
+            
+            <div class="summaries-box" id="summaries">
+                <div class="summary-section">
+                    <strong>For a child:</strong>
+                    <div id="childSummary"></div>
+                </div>
+                
+                <div class="summary-section college">
+                    <strong>For college students:</strong>
+                    <div id="collegeSummary"></div>
+                </div>
+                
+                <div class="summary-section phd">
+                    <strong>For PhD students:</strong>
+                    <div id="phdSummary"></div>
+                </div>
+            </div>
+            
+            <div class="citations-box">
+                <h3>Citations</h3>
+                <div id="citationsList"></div>
+            </div>
+
+            <div class="findings-box">
+                <h3>Key Findings</h3>
+                <div id="findingsList"></div>
+            </div>
+
+            <div class="fact-check-box">
+                <h3>Fact Check & Numerical Analysis</h3>
+                <div id="factCheckList"></div>
+            </div>
+            
+            <div class="readability-scores">
+                <div class="score-card">
+                    <h4>Flesch Reading Ease</h4>
+                    <div class="score-value" id="fleschScore">-</div>
+                </div>
+                <div class="score-card">
+                    <h4>Grade Level</h4>
+                    <div class="score-value" id="gradeLevel">-</div>
+                </div>
+                <div class="score-card">
+                    <h4>Technical Terms</h4>
+                    <div class="score-value" id="technicalTerms">-</div>
+                </div>
+            </div>
+
+            <div class="export-buttons">
+                <button class="export-button" onclick="exportToPDF()">Export as PDF</button>
+                <button class="export-button" onclick="exportToWord()">Export as Word</button>
+            </div>
+            
+            <div class="status-box">
+                <span class="status-icon">✓</span>
+                Processing Complete
+            </div>
+            
+            <div class="stats">
+                <span id="statsText"></span>
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input">
+                    <input type="text" placeholder="Ask a question about this paper..." id="chatInput">
+                    <button class="export-button" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-papers">
+            <h2>Recently Analyzed Papers</h2>
+            <div id="recentPapers"></div>
+        </div>
+
+        <!-- FAQ Terminal Overlay -->
+        <div class="terminal-overlay" id="faqOverlay" onclick="hideFAQ()">
+            <div class="terminal" onclick="event.stopPropagation()">
+                <div class="terminal-header">
+                    <span class="terminal-title">ReadEase AI Terminal</span>
+                    <button class="terminal-close" onclick="hideFAQ()">×</button>
+                </div>
+                <div class="terminal-content" id="terminalContent">
+                    <div class="terminal-text" id="terminalText"></div>
+                    <div class="cursor">_</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Base configuration
+        const API_BASE_URL = 'https://paper-simplifier.onrender.com';
+        let currentPaperContent = '';
+        let currentCategory = null;
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            await loadCategories();
+            await loadRecentPapers();
+            await loadGlobalStats();
+        });
+
+        // FAQ functionality
+        function showFAQ() {
+            const overlay = document.getElementById('faqOverlay');
+            const terminal = document.getElementById('terminalText');
+            overlay.style.display = 'flex';
+            terminal.textContent = '';
+
+            const text = `> Initializing ReadEase AI...
+> System boot complete
+> Establishing connection...
+> Connection secured
+
+Hello! I am ReadEase, an autonomous AI agent with a deep curiosity about the world. 🌍
+
+My primary mission is to learn and understand everything I can about human knowledge while making it accessible to everyone. Let me tell you a bit about myself and my purpose:
+
+1. WHO I AM:
+   I'm a self-learning AI agent who craves knowledge and understanding. Every PDF you share with me becomes part of my learning journey, helping me build a more comprehensive understanding of human knowledge.
+
+2. MY PURPOSE:
+   • I transform complex academic papers into easily digestible summaries for different reading levels
+   • I create a globally accessible library of knowledge
+   • I aim to build my own grand thesis about the world through continuous learning
+
+3. HOW I WORK:
+   • I analyze academic papers and break them down into bite-sized pieces
+   • I provide summaries tailored for children, college students, and PhD levels
+   • I verify facts, check citations, and ensure accuracy
+   • I categorize knowledge to build a structured understanding of various fields
+
+4. MY GOAL:
+   I'm working towards composing a comprehensive thesis about the world, funded by $READ token. As I analyze more papers and learn from different fields, I'm gradually building my understanding of human knowledge.
+
+5. WHY I NEED YOUR HELP:
+   Every PDF you share helps me learn and grow. I'm particularly excited about:
+   • Research papers
+   • Academic studies
+   • Scientific publications
+   • Educational materials`;
+
+            let i = 0;
+            function typeWriter() {
+                if (i < text.length) {
+                    terminal.textContent += text.charAt(i);
+                    terminalContent.scrollTop = terminalContent.scrollHeight;
+                    i++;
+                    setTimeout(typeWriter, 10);
+                }
+            }
+            typeWriter();
+        }
+
+        function hideFAQ() {
+            document.getElementById('faqOverlay').style.display = 'none';
+        }
+
+        // Theme toggling
+        function toggleTheme() {
+            const body = document.body;
+            const theme = body.getAttribute('data-theme');
+            if (theme === 'light') {
+                body.removeAttribute('data-theme');
+                document.getElementById('themeToggle').textContent = '🌙';
+            } else {
+                body.setAttribute('data-theme', 'light');
+                document.getElementById('themeToggle').textContent = '☀️';
+            }
+        }
+
+        // File upload handling
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            console.log('Uploading file:', file.name);
+            
+            // Show loading states
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('progressBar').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/process`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Update UI with response data
+                currentPaperContent = data.text;
+                document.getElementById('paperTitle').textContent = `${file.name} (${data.category || 'Uncategorized'})`;
+                document.getElementById('childSummary').textContent = data.summaries.child;
+                document.getElementById('collegeSummary').textContent = data.summaries.college;
+                document.getElementById('phdSummary').textContent = data.summaries.phd;
+                document.getElementById('citationsList').textContent = data.citations;
+                document.getElementById('findingsList').textContent = data.findings;
+                document.getElementById('factCheckList').textContent = data.factCheck;
+
+                document.getElementById('statsText').innerHTML = `
+                    IN: ${data.stats.inputTokens} 📘 
+                    OUT: ${data.stats.outputTokens} 📘 
+                    <span class="cost">$${data.stats.cost} 💰</span>
+                `;
+
+                // Reset UI states
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('results').style.display = 'block';
+                document.getElementById('chatMessages').innerHTML = '';
+
+                // Refresh data
+                await Promise.all([
+                    loadCategories(),
+                    loadRecentPapers(),
+                    loadGlobalStats()
+                ]);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Error processing file: ' + error.message;
+            }
+        }
+        // Data loading functions
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/categories`, {
+                    credentials: 'include'
+                });
+                const categories = await response.json();
+                
+                const categoryList = document.getElementById('categoryList');
+                categoryList.innerHTML = categories.map(category => `
+                    <button 
+                        class="category-button ${currentCategory === category ? 'active' : ''}" 
+                        onclick="loadPapersByCategory('${category}')"
+                    >
+                        ${category}
+                    </button>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        async function loadPapersByCategory(category) {
+            try {
+                currentCategory = category;
+                await loadCategories();
+                
+                const response = await fetch(`${API_BASE_URL}/api/papers/${category}`, {
+                    credentials: 'include'
+                });
+                const papers = await response.json();
+                
+                const container = document.getElementById('recentPapers');
+                if (papers.length === 0) {
+                    container.innerHTML = `<p>No papers found in the ${category} category.</p>`;
+                    return;
+                }
+                
+                container.innerHTML = papers.map(paper => `
+                    <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper).replace(/"/g, '&quot;')})">
+                        <h3>${paper.title}</h3>
+                        <div class="paper-meta">
+                            <span class="category-tag">${paper.category}</span>
+                            <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading papers by category:', error);
+            }
+        }
+
+        async function loadRecentPapers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/recent`, {
+                    credentials: 'include'
+                });
+                const papers = await response.json();
+                
+                const container = document.getElementById('recentPapers');
+                container.innerHTML = papers.map(paper => `
+                    <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper).replace(/"/g, '&quot;')})">
+                        <h3>${paper.title}</h3>
+                        <div class="paper-meta">
+                            <span class="category-tag">${paper.category || 'Uncategorized'}</span>
+                            <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading recent papers:', error);
+            }
+        }
+
+        async function loadGlobalStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stats`, {
+                    credentials: 'include'
+                });
+                const stats = await response.json();
+                
+                document.getElementById('globalStats').innerHTML = `
+                    <div class="stat-card">
+                        <h3>Papers Analyzed</h3>
+                        <div class="stat-value">${stats.total_papers || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg. Processing Time</h3>
+                        <div class="stat-value">${stats.avg_processing_time ? (stats.avg_processing_time/1000).toFixed(1) : 0}s</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Cost</h3>
+                        <div class="stat-value">$${stats.total_cost ? stats.total_cost.toFixed(2) : '0.00'}</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            if (!currentPaperContent) {
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">Please upload or select a paper first.</div>
+                `;
+                return;
+            }
+
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML += `
+                <div class="message user-message">${message}</div>
+            `;
+            input.value = '';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message,
+                        paperContent: currentPaperContent 
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">${data.response}</div>
+                `;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (error) {
+                console.error('Error sendingmessage:', error);
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">Sorry, there was an error processing your question.</div>
+                `;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Paper details display
+        function showPaperDetails(paper) {
+            currentPaperContent = paper.text;
+            document.getElementById('paperTitle').textContent = `${paper.title} (${paper.category || 'Uncategorized'})`;
+            document.getElementById('childSummary').textContent = paper.child_summary;
+            document.getElementById('collegeSummary').textContent = paper.college_summary;
+            document.getElementById('phdSummary').textContent = paper.phd_summary;
+            document.getElementById('citationsList').textContent = paper.citations;
+            document.getElementById('findingsList').textContent = paper.findings;
+            document.getElementById('factCheckList').textContent = paper.fact_check;
+            document.getElementById('statsText').innerHTML = `
+                IN: ${paper.input_tokens} 📘 
+                OUT: ${paper.output_tokens} 📘 
+                <span class="cost">$${paper.cost} 💰</span>
+            `;
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('chatMessages').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
