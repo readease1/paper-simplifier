@@ -376,8 +376,10 @@
             <div id="recentPapers"></div>
         </div>
     </div>
+	<script>
+        // Add this at the start
+        let currentPaperContent = '';
 
-    <script>
         window.addEventListener('load', async () => {
             await loadRecentPapers();
             await loadGlobalStats();
@@ -453,6 +455,8 @@
         }
 
         function showPaperDetails(paper) {
+            // Store the paper content
+            currentPaperContent = paper.text;
             document.getElementById('paperTitle').textContent = paper.title;
             document.getElementById('childSummary').textContent = paper.child_summary;
             document.getElementById('collegeSummary').textContent = paper.college_summary;
@@ -465,6 +469,9 @@
                 <span class="cost">$${paper.cost} 💰</span>
             `;
             document.getElementById('results').style.display = 'block';
+
+            // Clear previous chat messages when loading a new paper
+            document.getElementById('chatMessages').innerHTML = '';
         }
 
         async function handleFileUpload(event) {
@@ -491,6 +498,9 @@
 
                 const data = await response.json();
                 
+                // Store the paper content
+                currentPaperContent = data.text;
+                
                 document.getElementById('paperTitle').textContent = file.name;
                 document.getElementById('childSummary').textContent = data.summaries.child;
                 document.getElementById('collegeSummary').textContent = data.summaries.college;
@@ -514,6 +524,9 @@
                 document.getElementById('progressBar').style.display = 'none';
                 document.getElementById('results').style.display = 'block';
 
+                // Clear previous chat messages when loading a new paper
+                document.getElementById('chatMessages').innerHTML = '';
+
                 // Refresh stats
                 await loadRecentPapers();
                 await loadGlobalStats();
@@ -526,11 +539,20 @@
             }
         }
 
-        // Chat functionality
+        // Updated Chat functionality
         async function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             if (!message) return;
+
+            // Check if we have paper content
+            if (!currentPaperContent) {
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">Please upload or select a paper first.</div>
+                `;
+                return;
+            }
 
             const messagesContainer = document.getElementById('chatMessages');
             messagesContainer.innerHTML += `
@@ -539,10 +561,14 @@
             input.value = '';
 
             try {
+                console.log('Sending chat request with paper content length:', currentPaperContent.length);
                 const response = await fetch('https://paper-simplifier.onrender.com/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ 
+                        message,
+                        paperContent: currentPaperContent 
+                    })
                 });
 
                 const data = await response.json();
@@ -552,6 +578,9 @@
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             } catch (error) {
                 console.error('Error sending message:', error);
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">Sorry, there was an error processing your question.</div>
+                `;
             }
         }
 
@@ -561,7 +590,6 @@
             }
         });
 
-        // Export functions (these will need server implementation)
         async function exportToPDF() {
             try {
                 const response = await fetch('https://paper-simplifier.onrender.com/api/export/pdf', {
@@ -600,3 +628,4 @@
     </script>
 </body>
 </html>
+	
