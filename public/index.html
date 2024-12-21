@@ -150,11 +150,19 @@
         .cost {
             color: var(--accent);
         }
-        .citations-box, .findings-box {
+        .citations-box, .findings-box, .fact-check-box {
             background: var(--bg-tertiary);
             padding: 15px;
             margin-top: 15px;
             border-radius: 6px;
+        }
+        .fact-check-box h3 {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .fact-check-box h3::before {
+            content: '🔍';
         }
         .recent-papers {
             margin-top: 40px;
@@ -332,6 +340,11 @@
                 <h3>Key Findings</h3>
                 <div id="findingsList"></div>
             </div>
+
+            <div class="fact-check-box">
+                <h3>Fact Check & Numerical Analysis</h3>
+                <div id="factCheckList"></div>
+            </div>
             
             <div class="readability-scores">
                 <div class="score-card">
@@ -376,8 +389,7 @@
             <div id="recentPapers"></div>
         </div>
     </div>
-	<script>
-        // Add this at the start
+    <script>
         let currentPaperContent = '';
 
         window.addEventListener('load', async () => {
@@ -455,22 +467,20 @@
         }
 
         function showPaperDetails(paper) {
-            // Store the paper content
             currentPaperContent = paper.text;
             document.getElementById('paperTitle').textContent = paper.title;
             document.getElementById('childSummary').textContent = paper.child_summary;
             document.getElementById('collegeSummary').textContent = paper.college_summary;
             document.getElementById('phdSummary').textContent = paper.phd_summary;
             document.getElementById('citationsList').textContent = paper.citations;
-            document.getElementById('findingsList').textContent = paper.key_findings;
+            document.getElementById('findingsList').textContent = paper.findings;
+            document.getElementById('factCheckList').textContent = paper.fact_check;
             document.getElementById('statsText').innerHTML = `
                 IN: ${paper.input_tokens} 📘 
                 OUT: ${paper.output_tokens} 📘 
                 <span class="cost">$${paper.cost} 💰</span>
             `;
             document.getElementById('results').style.display = 'block';
-
-            // Clear previous chat messages when loading a new paper
             document.getElementById('chatMessages').innerHTML = '';
         }
 
@@ -498,7 +508,6 @@
 
                 const data = await response.json();
                 
-                // Store the paper content
                 currentPaperContent = data.text;
                 
                 document.getElementById('paperTitle').textContent = file.name;
@@ -507,8 +516,8 @@
                 document.getElementById('phdSummary').textContent = data.summaries.phd;
                 document.getElementById('citationsList').textContent = data.citations;
                 document.getElementById('findingsList').textContent = data.findings;
+                document.getElementById('factCheckList').textContent = data.factCheck;
 
-                // Calculate and display readability scores
                 const scores = calculateReadability(data.summaries.college);
                 document.getElementById('fleschScore').textContent = scores.flesch;
                 document.getElementById('gradeLevel').textContent = scores.gradeLevel;
@@ -523,11 +532,8 @@
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('progressBar').style.display = 'none';
                 document.getElementById('results').style.display = 'block';
-
-                // Clear previous chat messages when loading a new paper
                 document.getElementById('chatMessages').innerHTML = '';
 
-                // Refresh stats
                 await loadRecentPapers();
                 await loadGlobalStats();
 
@@ -539,13 +545,11 @@
             }
         }
 
-        // Updated Chat functionality
         async function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
             if (!message) return;
 
-            // Check if we have paper content
             if (!currentPaperContent) {
                 const messagesContainer = document.getElementById('chatMessages');
                 messagesContainer.innerHTML += `
@@ -628,4 +632,3 @@
     </script>
 </body>
 </html>
-	
