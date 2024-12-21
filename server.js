@@ -86,7 +86,11 @@ const upload = multer({
 });
 
 app.use(cors({
-    origin: ['https://paper-simplifier.onrender.com', 'http://localhost:3000'],
+    origin: [
+        'https://paper-simplifier.onrender.com', 
+        'http://localhost:3000',
+        'https://readease.wtf'
+    ],
     methods: ['GET', 'POST'],
     credentials: true
 }));
