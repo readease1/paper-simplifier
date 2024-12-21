@@ -16,6 +16,93 @@ if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
         console.log('Upload directory created:', uploadDir);
     } catch (error) {
+        console.error('Error fetching recent papers:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/categories', async (req, res) => {
+    try {
+        console.log('Fetching categories...');
+        const categories = await db.all(`
+            SELECT DISTINCT category 
+            FROM papers 
+            WHERE category IS NOT NULL 
+            ORDER BY category
+        `);
+        res.json(categories.map(c => c.category));
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get papers by category
+app.get('/api/papers/:category', async (req, res) => {
+    try {
+        const category = req.params.category;
+        console.log('Fetching papers for category:', category);
+        const papers = await db.all(`
+            SELECT * FROM papers 
+            WHERE category = ? 
+            ORDER BY timestamp DESC
+        `, [category]);
+        res.json(papers);
+    } catch (error) {
+        console.error('Error fetching papers by category:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Enhanced stats endpoint with error logging
+app.get('/api/stats', async (req, res) => {
+    try {
+        console.log('Fetching stats...');
+        const stats = await db.get(`
+            SELECT 
+                COUNT(*) as total_papers,
+                AVG(processing_time) as avg_processing_time,
+                SUM(cost) as total_cost,
+                AVG(input_tokens + output_tokens) as avg_tokens
+            FROM papers
+        `);
+        console.log('Stats retrieved successfully');
+        res.json(stats);
+    } catch (error) {
+        console.error('Error fetching stats:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Global error handler with enhanced logging
+app.use((err, req, res, next) => {
+    console.error('Global error handler:', {
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        origin: req.headers.origin
+    });
+    
+    res.status(500).json({ 
+        error: err.message,
+        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log('OpenAI API Key status:', process.env.OPENAI_API_KEY ? 'Present' : 'Missing');
+    console.log('CORS configuration:', {
+        origins: [
+            'https://readease.wtf',
+            'https://paper-simplifier.onrender.com',
+            'http://localhost:3000'
+        ],
+        methods: ['GET', 'POST', 'OPTIONS']
+    });
+});
         console.error('Error creating upload directory:', error);
     }
 }
@@ -91,34 +178,49 @@ const upload = multer({
     }
 }).single('file');
 
-// Request logging middleware for debugging
+// Enhanced request logging middleware for debugging
 app.use((req, res, next) => {
-    console.log('Incoming request:', {
+    console.log('Detailed request info:', {
         method: req.method,
         path: req.path,
-        headers: req.headers,
-        body: req.body
+        origin: req.headers.origin,
+        host: req.headers.host,
+        contentType: req.headers['content-type'],
+        userAgent: req.headers['user-agent']
     });
     next();
 });
 
-// Updated CORS configuration
+// Updated CORS configuration with multiple domains
 app.use(cors({
-    origin: ['https://readease.wtf', 'http://localhost:3000'],
+    origin: [
+        'https://readease.wtf',
+        'https://paper-simplifier.onrender.com',
+        'http://localhost:3000'
+    ],
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 200
 }));
 
-// Additional CORS headers middleware
+// Updated CORS headers middleware
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
+    const allowedOrigins = [
+        'https://readease.wtf',
+        'https://paper-simplifier.onrender.com',
+        'http://localhost:3000'
+    ];
+    
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header('Access-Control-Allow-Origin', origin);
+    }
+    
     res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.header('Access-Control-Allow-Credentials', 'true');
     
-    // Handle preflight requests
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
@@ -428,75 +530,3 @@ app.get('/api/recent', async (req, res) => {
         console.log(`Found ${papers.length} recent papers`);
         res.json(papers);
     } catch (error) {
-        console.error('Error fetching recent papers:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/categories', async (req, res) => {
-    try {
-        console.log('Fetching categories...');
-        const categories = await db.all(`
-            SELECT DISTINCT category 
-            FROM papers 
-            WHERE category IS NOT NULL 
-            ORDER BY category
-        `);
-        res.json(categories.map(c => c.category));
-    } catch (error) {
-        console.error('Error fetching categories:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get papers by category
-app.get('/api/papers/:category', async (req, res) => {
-    try {
-        const category = req.params.category;
-        console.log('Fetching papers for category:', category);
-        const papers = await db.all(`
-            SELECT * FROM papers 
-            WHERE category = ? 
-            ORDER BY timestamp DESC
-        `, [category]);
-        res.json(papers);
-    } catch (error) {
-        console.error('Error fetching papers by category:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Enhanced stats endpoint with error logging
-app.get('/api/stats', async (req, res) => {
-    try {
-        console.log('Fetching stats...');
-        const stats = await db.get(`
-            SELECT 
-                COUNT(*) as total_papers,
-                AVG(processing_time) as avg_processing_time,
-                SUM(cost) as total_cost,
-                AVG(input_tokens + output_tokens) as avg_tokens
-            FROM papers
-        `);
-        console.log('Stats retrieved successfully');
-        res.json(stats);
-    } catch (error) {
-        console.error('Error fetching stats:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-    console.error('Global error handler:', err);
-    res.status(500).json({ 
-        error: err.message,
-        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log('OpenAI API Key status:', process.env.OPENAI_API_KEY ? 'Present' : 'Missing');
-});
