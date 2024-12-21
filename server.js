@@ -16,93 +16,6 @@ if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
         console.log('Upload directory created:', uploadDir);
     } catch (error) {
-        console.error('Error fetching recent papers:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-app.get('/api/categories', async (req, res) => {
-    try {
-        console.log('Fetching categories...');
-        const categories = await db.all(`
-            SELECT DISTINCT category 
-            FROM papers 
-            WHERE category IS NOT NULL 
-            ORDER BY category
-        `);
-        res.json(categories.map(c => c.category));
-    } catch (error) {
-        console.error('Error fetching categories:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Get papers by category
-app.get('/api/papers/:category', async (req, res) => {
-    try {
-        const category = req.params.category;
-        console.log('Fetching papers for category:', category);
-        const papers = await db.all(`
-            SELECT * FROM papers 
-            WHERE category = ? 
-            ORDER BY timestamp DESC
-        `, [category]);
-        res.json(papers);
-    } catch (error) {
-        console.error('Error fetching papers by category:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Enhanced stats endpoint with error logging
-app.get('/api/stats', async (req, res) => {
-    try {
-        console.log('Fetching stats...');
-        const stats = await db.get(`
-            SELECT 
-                COUNT(*) as total_papers,
-                AVG(processing_time) as avg_processing_time,
-                SUM(cost) as total_cost,
-                AVG(input_tokens + output_tokens) as avg_tokens
-            FROM papers
-        `);
-        console.log('Stats retrieved successfully');
-        res.json(stats);
-    } catch (error) {
-        console.error('Error fetching stats:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Global error handler with enhanced logging
-app.use((err, req, res, next) => {
-    console.error('Global error handler:', {
-        error: err.message,
-        stack: err.stack,
-        path: req.path,
-        method: req.method,
-        origin: req.headers.origin
-    });
-    
-    res.status(500).json({ 
-        error: err.message,
-        details: process.env.NODE_ENV === 'development' ? err.stack : undefined
-    });
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log('OpenAI API Key status:', process.env.OPENAI_API_KEY ? 'Present' : 'Missing');
-    console.log('CORS configuration:', {
-        origins: [
-            'https://readease.wtf',
-            'https://paper-simplifier.onrender.com',
-            'http://localhost:3000'
-        ],
-        methods: ['GET', 'POST', 'OPTIONS']
-    });
-});
         console.error('Error creating upload directory:', error);
     }
 }
@@ -530,3 +443,90 @@ app.get('/api/recent', async (req, res) => {
         console.log(`Found ${papers.length} recent papers`);
         res.json(papers);
     } catch (error) {
+        console.error('Error fetching recent papers:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+    
+    app.get('/api/categories', async (req, res) => {
+        try {
+            console.log('Fetching categories...');
+            const categories = await db.all(`
+                SELECT DISTINCT category 
+                FROM papers 
+                WHERE category IS NOT NULL 
+                ORDER BY category
+            `);
+            res.json(categories.map(c => c.category));
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+    
+    // Get papers by category
+    app.get('/api/papers/:category', async (req, res) => {
+        try {
+            const category = req.params.category;
+            console.log('Fetching papers for category:', category);
+            const papers = await db.all(`
+                SELECT * FROM papers 
+                WHERE category = ? 
+                ORDER BY timestamp DESC
+            `, [category]);
+            res.json(papers);
+        } catch (error) {
+            console.error('Error fetching papers by category:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+    
+    // Enhanced stats endpoint with error logging
+    app.get('/api/stats', async (req, res) => {
+        try {
+            console.log('Fetching stats...');
+            const stats = await db.get(`
+                SELECT 
+                    COUNT(*) as total_papers,
+                    AVG(processing_time) as avg_processing_time,
+                    SUM(cost) as total_cost,
+                    AVG(input_tokens + output_tokens) as avg_tokens
+                FROM papers
+            `);
+            console.log('Stats retrieved successfully');
+            res.json(stats);
+        } catch (error) {
+            console.error('Error fetching stats:', error);
+            res.status(500).json({ error: error.message });
+        }
+    });
+    
+    // Global error handler with enhanced logging
+    app.use((err, req, res, next) => {
+        console.error('Global error handler:', {
+            error: err.message,
+            stack: err.stack,
+            path: req.path,
+            method: req.method,
+            origin: req.headers.origin
+        });
+        
+        res.status(500).json({ 
+            error: err.message,
+            details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+        });
+    });
+    
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+        console.log('OpenAI API Key status:', process.env.OPENAI_API_KEY ? 'Present' : 'Missing');
+        console.log('CORS configuration:', {
+            origins: [
+                'https://readease.wtf',
+                'https://paper-simplifier.onrender.com',
+                'http://localhost:3000'
+            ],
+            methods: ['GET', 'POST', 'OPTIONS']
+        });
+    });
