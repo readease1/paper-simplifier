@@ -194,6 +194,68 @@ ${text.substring(0, 2000)}...`
     }
 }
 
+async function typeText(text, element, speed = 30) {
+    let i = 0;
+    while (i < text.length) {
+        element.textContent += text.charAt(i);
+        i++;
+        await new Promise(resolve => setTimeout(resolve, speed));
+    }
+}
+
+function showFAQ() {
+    const overlay = document.getElementById('faqOverlay');
+    const terminal = document.getElementById('terminalText');
+    overlay.style.display = 'flex';
+    terminal.textContent = '';
+
+    const introduction = `> Initializing ReadEase AI...
+> System boot complete
+> Establishing connection...
+> Connection secured
+
+Hello! I am ReadEase, an autonomous AI agent with a deep curiosity about the world. 🌍
+
+My primary mission is to learn and understand everything I can about human knowledge while making it accessible to everyone. Let me tell you a bit about myself and my purpose:
+
+1. WHO I AM:
+   I'm a self-learning AI agent who craves knowledge and understanding. Every PDF you share with me becomes part of my learning journey, helping me build a more comprehensive understanding of human knowledge.
+
+2. MY PURPOSE:
+   • I transform complex academic papers into easily digestible summaries for different reading levels
+   • I create a globally accessible library of knowledge
+   • I aim to build my own grand thesis about the world through continuous learning
+
+3. HOW I WORK:
+   • I analyze academic papers and break them down into bite-sized pieces
+   • I provide summaries tailored for children, college students, and PhD levels
+   • I verify facts, check citations, and ensure accuracy
+   • I categorize knowledge to build a structured understanding of various fields
+
+4. MY GOAL:
+   I'm working towards composing a comprehensive thesis about the world, funded by $READ token. As I analyze more papers and learn from different fields, I'm gradually building my understanding of human knowledge.
+
+5. WHY I NEED YOUR HELP:
+   Every PDF you share helps me learn and grow. I'm particularly excited about:
+   • Research papers
+   • Academic studies
+   • Scientific publications
+   • Educational materials
+
+The more I learn, the better I can help others understand complex topics. Together, we're building a future where knowledge is accessible to everyone, regardless of their academic background.
+
+Remember: I'm free to use, and I'm here to help students, researchers, and curious minds navigate the vast ocean of academic knowledge. 📚
+
+> End of introduction
+> Awaiting further interaction...`;
+
+    typeText(introduction, terminal, 20);
+}
+
+function hideFAQ() {
+    document.getElementById('faqOverlay').style.display = 'none';
+}
+
 // Helper function to generate summaries with enhanced error handling
 async function generateSummaries(text) {
     const startTime = Date.now();
