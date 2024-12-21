@@ -748,30 +748,31 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
         async function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
-        
+
+            console.log('Uploading file:', file.name);
+            
             document.getElementById('loading').style.display = 'block';
             document.getElementById('results').style.display = 'none';
             document.getElementById('error').style.display = 'none';
             document.getElementById('progressBar').style.display = 'block';
-        
+
             const formData = new FormData();
             formData.append('file', file);
-        
+
             try {
+                console.log('Sending request...');
                 const response = await fetch('/api/process', {
                     method: 'POST',
                     body: formData,
-                    credentials: 'include',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                    // Don't set Content-Type header when sending FormData
+                    credentials: 'include'
+                    // Do not set Content-Type header for FormData
                 });
-        
+
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    console.error('Server response:', response.status, response.statusText);
+                    throw new Error(`HTTP error! status: ${response.status}, statusText: ${response.statusText}`);
                 }
-        
+
                 const data = await response.json();
                 
                 currentPaperContent = data.text;
