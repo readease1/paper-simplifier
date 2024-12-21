@@ -76,6 +76,32 @@
         .token-text {
             color: var(--accent);
         }
+        .categories-box {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .category-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .category-button {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .category-button:hover,
+        .category-button.active {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
         .paper-box {
             background: var(--bg-secondary);
             border-radius: 8px;
@@ -282,6 +308,19 @@
             0% { left: -20%; }
             100% { left: 100%; }
         }
+        .paper-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .category-tag {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+        }
     </style>
 </head>
 <body>
@@ -295,6 +334,13 @@
         
         <div class="token-box">
             Research funded by <span class="token-text">$READ</span> token
+        </div>
+
+        <div class="categories-box">
+            <h3>Browse by Category</h3>
+            <div class="category-list" id="categoryList">
+                <!-- Categories will be populated here -->
+            </div>
         </div>
 
         <div class="progress-bar" id="progressBar"></div>
@@ -391,11 +437,60 @@
     </div>
     <script>
         let currentPaperContent = '';
+        let currentCategory = null;
 
         window.addEventListener('load', async () => {
+            await loadCategories();
             await loadRecentPapers();
             await loadGlobalStats();
         });
+
+        async function loadCategories() {
+            try {
+                const response = await fetch('https://paper-simplifier.onrender.com/api/categories');
+                const categories = await response.json();
+                
+                const categoryList = document.getElementById('categoryList');
+                categoryList.innerHTML = categories.map(category => `
+                    <button 
+                        class="category-button ${currentCategory === category ? 'active' : ''}" 
+                        onclick="loadPapersByCategory('${category}')"
+                    >
+                        ${category}
+                    </button>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        async function loadPapersByCategory(category) {
+            try {
+                currentCategory = category;
+                await loadCategories(); // Refresh category buttons to show active state
+                
+                const response = await fetch(`https://paper-simplifier.onrender.com/api/papers/${category}`);
+                const papers = await response.json();
+                
+                const container = document.getElementById('recentPapers');
+                if (papers.length === 0) {
+                    container.innerHTML = `<p>No papers found in the ${category} category.</p>`;
+                    return;
+                }
+                
+                container.innerHTML = papers.map(paper => `
+                    <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper)})">
+                        <h3>${paper.title}</h3>
+                        <div class="paper-meta">
+                            <span class="category-tag">${paper.category}</span>
+                            <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading papers by category:', error);
+            }
+        }
 
         function toggleTheme() {
             const body = document.body;
@@ -418,7 +513,10 @@
                 container.innerHTML = papers.map(paper => `
                     <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper)})">
                         <h3>${paper.title}</h3>
-                        <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                        <div class="paper-meta">
+                            <span class="category-tag">${paper.category || 'Uncategorized'}</span>
+                            <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                        </div>
                     </div>
                 `).join('');
             } catch (error) {
@@ -468,7 +566,7 @@
 
         function showPaperDetails(paper) {
             currentPaperContent = paper.text;
-            document.getElementById('paperTitle').textContent = paper.title;
+            document.getElementById('paperTitle').textContent = `${paper.title} (${paper.category || 'Uncategorized'})`;
             document.getElementById('childSummary').textContent = paper.child_summary;
             document.getElementById('collegeSummary').textContent = paper.college_summary;
             document.getElementById('phdSummary').textContent = paper.phd_summary;
@@ -510,7 +608,7 @@
                 
                 currentPaperContent = data.text;
                 
-                document.getElementById('paperTitle').textContent = file.name;
+                document.getElementById('paperTitle').textContent = `${file.name} (${data.category || 'Uncategorized'})`;
                 document.getElementById('childSummary').textContent = data.summaries.child;
                 document.getElementById('collegeSummary').textContent = data.summaries.college;
                 document.getElementById('phdSummary').textContent = data.summaries.phd;
@@ -534,6 +632,7 @@
                 document.getElementById('results').style.display = 'block';
                 document.getElementById('chatMessages').innerHTML = '';
 
+                await loadCategories();
                 await loadRecentPapers();
                 await loadGlobalStats();
 
