@@ -295,7 +295,9 @@
             position: relative;
             margin: 20px 0;
             display: none;
+            overflow: hidden; /* Add this line */
         }
+        
         .progress-bar::after {
             content: '';
             position: absolute;
@@ -304,9 +306,10 @@
             background: var(--accent);
             animation: progress 2s infinite;
         }
+        
         @keyframes progress {
             0% { left: -20%; }
-            100% { left: 100%; }
+            100% { left: 100%; transform: translateX(-100%); } /* Update this line */
         }
         .paper-meta {
             display: flex;
