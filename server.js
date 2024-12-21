@@ -9,6 +9,10 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
+// Define upload directory and log it
+const uploadDir = process.env.NODE_ENV === 'production' ? '/tmp/uploads' : './uploads';
+console.log('Upload directory:', uploadDir);
+
 // Initialize database
 let db;
 (async () => {
@@ -44,20 +48,26 @@ const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY
 });
 
-// Define the upload directory and configure multer
-const uploadDir = process.env.NODE_ENV === 'production' ? '/tmp/uploads' : './uploads';
-
+// Configure multer with detailed logging
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Create directory if it doesn't exist
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
+        console.log('Creating upload directory:', uploadDir);
+        try {
+            if (!fs.existsSync(uploadDir)) {
+                fs.mkdirSync(uploadDir, { recursive: true });
+                console.log('Created upload directory');
+            }
+            cb(null, uploadDir);
+        } catch (err) {
+            console.error('Error creating upload directory:', err);
+            cb(err);
         }
-        cb(null, uploadDir);
     },
     filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    },
+        const filename = Date.now() + '-' + file.originalname;
+        console.log('Generated filename:', filename);
+        cb(null, filename);
+    }
 });
 
 const upload = multer({ storage: storage });
@@ -121,8 +131,8 @@ async function generateSummaries(text) {
     let totalTokens = { input: 0, output: 0 };
 
     try {
-        // Generate summaries for each level
         for (const level of levels) {
+            console.log(`Generating ${level} level summary...`);
             const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [{ 
@@ -136,7 +146,7 @@ async function generateSummaries(text) {
             totalTokens.output += response.usage.completion_tokens;
         }
 
-        // Extract citations and key findings
+        console.log('Extracting citations and findings...');
         const [citations, findings] = await Promise.all([
             extractCitations(text),
             extractKeyFindings(text)
@@ -164,7 +174,7 @@ async function generateSummaries(text) {
     }
 }
 
-// Chat endpoint
+// Chat endpoint with improved logging
 app.post('/api/chat', async (req, res) => {
     try {
         console.log('Received chat request');
@@ -174,7 +184,7 @@ app.post('/api/chat', async (req, res) => {
         console.log('Paper content length:', paperContent?.length || 0);
 
         if (!paperContent || paperContent.length === 0) {
-            // Try to get the paper content from the database using the last processed paper
+            console.log('Attempting to retrieve paper from database...');
             const lastPaper = await db.get('SELECT text FROM papers ORDER BY timestamp DESC LIMIT 1');
             if (lastPaper && lastPaper.text) {
                 console.log('Retrieved paper content from database');
@@ -228,7 +238,7 @@ Question about this paper: ${message}`
     }
 });
 
-// API endpoint to process paper
+// API endpoint to process paper with enhanced error logging
 app.post('/api/process', upload.single('file'), async (req, res) => {
     try {
         console.log('Starting file process...');
@@ -237,23 +247,44 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        console.log('File received:', req.file.originalname);
+        console.log('File received:', req.file);  // Log full file object
+        console.log('File path:', req.file.path);
+        console.log('Attempting to read file...');
+
         try {
+            // Check if file exists
+            if (!fs.existsSync(req.file.path)) {
+                throw new Error('File does not exist at path: ' + req.file.path);
+            }
+
             const dataBuffer = fs.readFileSync(req.file.path);
             console.log('File read successfully, size:', dataBuffer.length);
             
+            // Check if buffer is empty
+            if (!dataBuffer.length) {
+                throw new Error('File buffer is empty');
+            }
+            
+            console.log('Attempting to parse PDF...');
             const data = await pdfParse(dataBuffer);
             console.log('PDF parsed successfully, text length:', data.text.length);
 
+            // Check if text was extracted
+            if (!data.text || data.text.length === 0) {
+                throw new Error('No text extracted from PDF');
+            }
+
             if (isProcessing) {
+                console.log('System busy, adding to queue...');
                 queue.push({ text: data.text, res });
                 return;
             }
 
+            console.log('Starting summary generation...');
             isProcessing = true;
             const result = await generateSummaries(data.text);
             
-            // Save to database
+            console.log('Saving to database...');
             await db.run(`
                 INSERT INTO papers (
                     title, text, child_summary, college_summary, phd_summary, 
@@ -277,29 +308,45 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
             isProcessing = false;
 
             if (queue.length > 0) {
+                console.log('Processing next item in queue...');
                 const next = queue.shift();
                 generateSummaries(next.text)
                     .then(sum => next.res.json(sum))
                     .catch(err => next.res.status(500).json({ error: err.message }));
             }
 
+            console.log('Sending response...');
             res.json({
                 ...result,
                 rawText: data.text
             });
 
         } catch (fileError) {
-            console.error('File processing error:', fileError);
+            console.error('Detailed file error:', fileError);
+            console.error('Error stack:', fileError.stack);
             throw new Error(`File processing failed: ${fileError.message}`);
         }
 
     } catch (error) {
-        console.error('Error processing request:', error);
+        console.error('Full error details:', error);
+        console.error('Error stack:', error.stack);
         isProcessing = false;
         res.status(500).json({ 
             error: error.message,
-            details: error.stack
+            details: error.stack,
+            path: req.file?.path,
+            originalName: req.file?.originalname
         });
+    } finally {
+        // Clean up uploaded file
+        if (req.file && req.file.path) {
+            try {
+                fs.unlinkSync(req.file.path);
+                console.log('Cleaned up uploaded file');
+            } catch (cleanupError) {
+                console.error('Error cleaning up file:', cleanupError);
+            }
+        }
     }
 });
 
@@ -316,6 +363,7 @@ app.get('/api/recent', async (req, res) => {
         `);
         res.json(papers);
     } catch (error) {
+        console.error('Error fetching recent papers:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -333,6 +381,7 @@ app.get('/api/stats', async (req, res) => {
         `);
         res.json(stats);
     } catch (error) {
+        console.error('Error fetching stats:', error);
         res.status(500).json({ error: error.message });
     }
 });
@@ -341,4 +390,5 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
     console.log('OpenAI API Key status:', process.env.OPENAI_API_KEY ? 'Present' : 'Missing');
+    console.log('Environment:', process.env.NODE_ENV || 'development');
 });
