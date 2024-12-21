@@ -605,7 +605,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function loadCategories() {
             try {
-                const response = await fetch('https://paper-simplifier.onrender.com/api/categories');
+                const response = await fetch('https://readease.wtf/api/categories');
                 const categories = await response.json();
                 
                 const categoryList = document.getElementById('categoryList');
@@ -627,7 +627,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
                 currentCategory = category;
                 await loadCategories(); // Refresh category buttons to show active state
                 
-                const response = await fetch(`https://paper-simplifier.onrender.com/api/papers/${category}`);
+                const response = await fetch(`https://readease.wtf/api/papers/${category}`);
                 const papers = await response.json();
                 
                 const container = document.getElementById('recentPapers');
@@ -664,7 +664,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function loadRecentPapers() {
             try {
-                const response = await fetch('https://paper-simplifier.onrender.com/api/recent');
+                const response = await fetch('https://readease.wtf/api/recent');
                 const papers = await response.json();
                 
                 const container = document.getElementById('recentPapers');
@@ -684,7 +684,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function loadGlobalStats() {
             try {
-                const response = await fetch('https://paper-simplifier.onrender.com/api/stats');
+                const response = await fetch('https://readease.wtf/api/stats');
                 const stats = await response.json();
                 
                 document.getElementById('globalStats').innerHTML = `
@@ -753,7 +753,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
             formData.append('file', file);
 
             try {
-                const response = await fetch('https://paper-simplifier.onrender.com/api/process', {
+                const response = await fetch('https://readease.wtf/api/process', {
                     method: 'POST',
                     body: formData
                 });
@@ -823,7 +823,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
             try {
                 console.log('Sending chat request with paper content length:', currentPaperContent.length);
-                const response = await fetch('https://paper-simplifier.onrender.com/api/chat', {
+                const response = await fetch('https://readease.wtf/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
@@ -853,7 +853,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function exportToPDF() {
             try {
-                const response = await fetch('https://paper-simplifier.onrender.com/api/export/pdf', {
+                const response = await fetch('https://readease.wtf/api/export/pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: document.getElementById('results').innerHTML })
@@ -871,7 +871,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function exportToWord() {
             try {
-                const response = await fetch('https://paper-simplifier.onrender.com/api/export/word', {
+                const response = await fetch('https://readease.wtf/api/export/word', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: document.getElementById('results').innerHTML })
