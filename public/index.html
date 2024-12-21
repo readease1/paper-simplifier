@@ -76,6 +76,36 @@
         .token-text {
             color: var(--accent);
         }
+        .token-address {
+            font-family: monospace;
+            background: var(--bg-secondary);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .social-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .social-button {
+            background: var(--accent);
+            color: var(--bg-primary);
+            padding: 8px 16px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .social-button:hover {
+            transform: translateY(-2px);
+        }
         .categories-box {
             background: var(--bg-tertiary);
             padding: 20px;
@@ -297,7 +327,6 @@
             display: none;
             overflow: hidden;
         }
-        
         .progress-bar::after {
             content: '';
             position: absolute;
@@ -306,7 +335,6 @@
             background: var(--accent);
             animation: progress 2s infinite;
         }
-        
         @keyframes progress {
             0% { left: -20%; }
             100% { left: 100%; transform: translateX(-100%); }
@@ -411,8 +439,21 @@
         </p>
         
         <button class="faq-button" onclick="showFAQ()">What is Readease? 🤖</button>
+        
+        <!-- Updated Token Box -->
         <div class="token-box">
             Research funded by <span class="token-text">$READ</span> token
+            <div class="token-address">
+                Support $READ: BXcohohQ6UKLQCfStez6LZfT8QppBp67YAKL5besU6B9
+            </div>
+            <div class="social-buttons">
+                <a href="https://twitter.com/intent/tweet?text=Check%20out%20%24READ%20token!" target="_blank" rel="noopener noreferrer" class="social-button">
+                    🐦 Twitter
+                </a>
+                <a href="https://pump.fun" target="_blank" rel="noopener noreferrer" class="social-button">
+                    📈 Pump.fun
+                </a>
+            </div>
         </div>
 
         <div class="categories-box">
@@ -423,7 +464,6 @@
         </div>
 
         <div class="progress-bar" id="progressBar"></div>
-
         <div class="upload-box" onclick="document.getElementById('fileInput').click()">
             <input type="file" id="fileInput" hidden accept=".pdf" onchange="handleFileUpload(event)">
             Drop your academic paper here or click to upload (PDF only)
@@ -527,327 +567,325 @@
                 </div>
             </div>
         </div>
-        </div>
-    
-        <script>
-            // Base configuration
-            const API_BASE_URL = 'https://paper-simplifier.onrender.com';
-            let currentPaperContent = '';
-            let currentCategory = null;
-    
-            // Initialize on page load
-            window.addEventListener('load', async () => {
-                await loadCategories();
-                await loadRecentPapers();
-                await loadGlobalStats();
-            });
-    
-            // FAQ functionality
-            function showFAQ() {
-                const overlay = document.getElementById('faqOverlay');
-                const terminal = document.getElementById('terminalText');
-                overlay.style.display = 'flex';
-                terminal.textContent = '';
-    
-                const text = `> Initializing ReadEase AI...
-    > System boot complete
-    > Establishing connection...
-    > Connection secured
-    
-    Hello! I am ReadEase, an autonomous AI agent with a deep curiosity about the world. 🌍
-    
-    My primary mission is to learn and understand everything I can about human knowledge while making it accessible to everyone. Let me tell you a bit about myself and my purpose:
-    
-    1. WHO I AM:
-       I'm a self-learning AI agent who craves knowledge and understanding. Every PDF you share with me becomes part of my learning journey, helping me build a more comprehensive understanding of human knowledge.
-    
-    2. MY PURPOSE:
-       • I transform complex academic papers into easily digestible summaries for different reading levels
-       • I create a globally accessible library of knowledge
-       • I aim to build my own grand thesis about the world through continuous learning
-    
-    3. HOW I WORK:
-       • I analyze academic papers and break them down into bite-sized pieces
-       • I provide summaries tailored for children, college students, and PhD levels
-       • I verify facts, check citations, and ensure accuracy
-       • I categorize knowledge to build a structured understanding of various fields
-    
-    4. MY GOAL:
-       I'm working towards composing a comprehensive thesis about the world, funded by $READ token. As I analyze more papers and learn from different fields, I'm gradually building my understanding of human knowledge.
-    
-    5. WHY I NEED YOUR HELP:
-       Every PDF you share helps me learn and grow. I'm particularly excited about:
-       • Research papers
-       • Academic studies
-       • Scientific publications
-       • Educational materials`;
-    
-                let i = 0;
-                function typeWriter() {
-                    if (i < text.length) {
-                        terminal.textContent += text.charAt(i);
-                        terminalContent.scrollTop = terminalContent.scrollHeight;
-                        i++;
-                        setTimeout(typeWriter, 10);
-                    }
-                }
-                typeWriter();
-            }
-    
-            function hideFAQ() {
-                document.getElementById('faqOverlay').style.display = 'none';
-            }
-    
-            // Theme toggling
-            function toggleTheme() {
-                const body = document.body;
-                const theme = body.getAttribute('data-theme');
-                if (theme === 'light') {
-                    body.removeAttribute('data-theme');
-                    document.getElementById('themeToggle').textContent = '🌙';
-                } else {
-                    body.setAttribute('data-theme', 'light');
-                    document.getElementById('themeToggle').textContent = '☀️';
+    </div>
+
+    <script>
+        // Base configuration
+        const API_BASE_URL = 'https://paper-simplifier.onrender.com';
+        let currentPaperContent = '';
+        let currentCategory = null;
+
+        // Initialize on page load
+        window.addEventListener('load', async () => {
+            await loadCategories();
+            await loadRecentPapers();
+            await loadGlobalStats();
+        });
+
+        // FAQ functionality
+        function showFAQ() {
+            const overlay = document.getElementById('faqOverlay');
+            const terminal = document.getElementById('terminalText');
+            overlay.style.display = 'flex';
+            terminal.textContent = '';
+
+            const text = `> Initializing ReadEase AI...
+> System boot complete
+> Establishing connection...
+> Connection secured
+
+Hello! I am ReadEase, an autonomous AI agent with a deep curiosity about the world. 🌍
+
+My primary mission is to learn and understand everything I can about human knowledge while making it accessible to everyone. Let me tell you a bit about myself and my purpose:
+
+1. WHO I AM:
+   I'm a self-learning AI agent who craves knowledge and understanding. Every PDF you share with me becomes part of my learning journey, helping me build a more comprehensive understanding of human knowledge.
+
+2. MY PURPOSE:
+   • I transform complex academic papers into easily digestible summaries for different reading levels
+   • I create a globally accessible library of knowledge
+   • I aim to build my own grand thesis about the world through continuous learning
+
+3. HOW I WORK:
+   • I analyze academic papers and break them down into bite-sized pieces
+   • I provide summaries tailored for children, college students, and PhD levels
+   • I verify facts, check citations, and ensure accuracy
+   • I categorize knowledge to build a structured understanding of various fields
+
+4. MY GOAL:
+   I'm working towards composing a comprehensive thesis about the world, funded by $READ token. As I analyze more papers and learn from different fields, I'm gradually building my understanding of human knowledge.
+
+5. WHY I NEED YOUR HELP:
+   Every PDF you share helps me learn and grow. I'm particularly excited about:
+   • Research papers
+   • Academic studies
+   • Scientific publications
+   • Educational materials`;
+
+            let i = 0;
+            function typeWriter() {
+                if (i < text.length) {
+                    terminal.textContent += text.charAt(i);
+                    terminalContent.scrollTop = terminalContent.scrollHeight;
+                    i++;
+                    setTimeout(typeWriter, 10);
                 }
             }
-    
-            // File upload handling
-            async function handleFileUpload(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-    
-                console.log('Uploading file:', file.name);
+            typeWriter();
+        }
+
+        function hideFAQ() {
+            document.getElementById('faqOverlay').style.display = 'none';
+        }
+
+        // Theme toggling
+        function toggleTheme() {
+            const body = document.body;
+            const theme = body.getAttribute('data-theme');
+            if (theme === 'light') {
+                body.removeAttribute('data-theme');
+                document.getElementById('themeToggle').textContent = '🌙';
+            } else {
+                body.setAttribute('data-theme', 'light');
+                document.getElementById('themeToggle').textContent = '☀️';
+            }
+        }
+
+        // File upload handling
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            console.log('Uploading file:', file.name);
+            
+            // Show loading states
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('progressBar').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/process`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
                 
-                // Show loading states
-                document.getElementById('loading').style.display = 'block';
-                document.getElementById('results').style.display = 'none';
-                document.getElementById('error').style.display = 'none';
-                document.getElementById('progressBar').style.display = 'block';
-    
-                const formData = new FormData();
-                formData.append('file', file);
-    
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/process`, {
-                        method: 'POST',
-                        body: formData,
-                        credentials: 'include'
-                    });
-    
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-    
-                    const data = await response.json();
-                    
-                    // Update UI with response data
-                    currentPaperContent = data.text;
-                    document.getElementById('paperTitle').textContent = `${file.name} (${data.category || 'Uncategorized'})`;
-                    document.getElementById('childSummary').textContent = data.summaries.child;
-                    document.getElementById('collegeSummary').textContent = data.summaries.college;
-                    document.getElementById('phdSummary').textContent = data.summaries.phd;
-                    document.getElementById('citationsList').textContent = data.citations;
-                    document.getElementById('findingsList').textContent = data.findings;
-                    document.getElementById('factCheckList').textContent = data.factCheck;
-    
-                    document.getElementById('statsText').innerHTML = `
-                        IN: ${data.stats.inputTokens} 📘 
-                        OUT: ${data.stats.outputTokens} 📘 
-                        <span class="cost">$${data.stats.cost} 💰</span>
-                    `;
-    
-                    // Reset UI states
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('progressBar').style.display = 'none';
-                    document.getElementById('results').style.display = 'block';
-                    document.getElementById('chatMessages').innerHTML = '';
-    
-                    // Refresh data
-                    await Promise.all([
-                        loadCategories(),
-                        loadRecentPapers(),
-                        loadGlobalStats()
-                    ]);
-    
-                } catch (error) {
-                    console.error('Upload error:', error);
-                    document.getElementById('loading').style.display = 'none';
-                    document.getElementById('progressBar').style.display = 'none';
-                    document.getElementById('error').style.display = 'block';
-                    document.getElementById('error').textContent = 'Error processing file: ' + error.message;
-                }
-            }
-    
-            // Data loading functions
-            async function loadCategories() {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/categories`, {
-                        credentials: 'include'
-                    });
-                    const categories = await response.json();
-                    
-                    const categoryList = document.getElementById('categoryList');
-                    categoryList.innerHTML = categories.map(category => `
-                        <button 
-                            class="category-button ${currentCategory === category ? 'active' : ''}" 
-                            onclick="loadPapersByCategory('${category}')"
-                        >
-                            ${category}
-                        </button>
-                    `).join('');
-                } catch (error) {
-                    console.error('Error loading categories:', error);
-                }
-            }
-    
-            async function loadPapersByCategory(category) {
-                try {
-                    currentCategory = category;
-                    await loadCategories();
-                    
-                    const response = await fetch(`${API_BASE_URL}/api/papers/${category}`, {
-                        credentials: 'include'
-                    });
-                    const papers = await response.json();
-                    
-                    const container = document.getElementById('recentPapers');
-                    if (papers.length === 0) {
-                        container.innerHTML = `<p>No papers found in the ${category} category.</p>`;
-                        return;
-                    }
-                    
-                    container.innerHTML = papers.map(paper => `
-                        <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper).replace(/"/g, '&quot;')})">
-                            <h3>${paper.title}</h3>
-                            <div class="paper-meta">
-                                <span class="category-tag">${paper.category}</span>
-                                <small>${new Date(paper.timestamp).toLocaleString()}</small>
-                            </div>
-                        </div>
-                    `).join('');
-                } catch (error) {
-                    console.error('Error loading papers by category:', error);
-                }
-            }
-    
-            async function loadRecentPapers() {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/recent`, {
-                        credentials: 'include'
-                    });
-                    const papers = await response.json();
-                    
-                    const container = document.getElementById('recentPapers');
-                    container.innerHTML = papers.map(paper => `
-                        <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper).replace(/"/g, '&quot;')})">
-                            <h3>${paper.title}</h3>
-                            <div class="paper-meta">
-                                <span class="category-tag">${paper.category || 'Uncategorized'}</span>
-                                <small>${new Date(paper.timestamp).toLocaleString()}</small>
-                            </div>
-                        </div>
-                    `).join('');
-                } catch (error) {
-                    console.error('Error loading recent papers:', error);
-                }
-            }
-    
-            async function loadGlobalStats() {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/stats`, {
-                        credentials: 'include'
-                    });
-                    const stats = await response.json();
-                    
-                    document.getElementById('globalStats').innerHTML = `
-                        <div class="stat-card">
-                            <h3>Papers Analyzed</h3>
-                            <div class="stat-value">${stats.total_papers || 0}</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Avg. Processing Time</h3>
-                            <div class="stat-value">${stats.avg_processing_time ? (stats.avg_processing_time/1000).toFixed(1) : 0}s</div>
-                        </div>
-                        <div class="stat-card">
-                            <h3>Total Cost</h3>
-                            <div class="stat-value">$${stats.total_cost ? stats.total_cost.toFixed(2) : '0.00'}</div>
-                        </div>
-                    `;
-                } catch (error) {
-                    console.error('Error loading stats:', error);
-                }
-            }
-    
-            // Chat functionality
-            async function sendMessage() {
-                const input = document.getElementById('chatInput');
-                const message = input.value.trim();
-                if (!message) return;
-    
-                if (!currentPaperContent) {
-                    const messagesContainer = document.getElementById('chatMessages');
-                    messagesContainer.innerHTML += `
-                        <div class="message ai-message">Please upload or select a paper first.</div>
-                    `;
-                    return;
-                }
-    
-                const messagesContainer = document.getElementById('chatMessages');
-                messagesContainer.innerHTML += `
-                    <div class="message user-message">${message}</div>
-                `;
-                input.value = '';
-    
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/chat`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            message,
-                            paperContent: currentPaperContent 
-                        }),
-                        credentials: 'include'
-                    });
-    
-                    const data = await response.json();
-                    messagesContainer.innerHTML += `
-                        <div class="message ai-message">${data.response}</div>
-                    `;
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                } catch (error) {
-                    console.error('Error sending message:', error);
-                    messagesContainer.innerHTML += `
-                        <div class="message ai-message">Sorry, there was an error processing your question.</div>
-                    `;
-                }
-            }
-    
-            // Event listeners
-            document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    sendMessage();
-                }
-            });
-    
-            // Paper details display
-            function showPaperDetails(paper) {
-                currentPaperContent = paper.text;
-                document.getElementById('paperTitle').textContent = `${paper.title} (${paper.category || 'Uncategorized'})`;
-                document.getElementById('childSummary').textContent = paper.child_summary;
-                document.getElementById('collegeSummary').textContent = paper.college_summary;
-                document.getElementById('phdSummary').textContent = paper.phd_summary;
-                document.getElementById('citationsList').textContent = paper.citations;
-                document.getElementById('findingsList').textContent = paper.findings;
-                document.getElementById('factCheckList').textContent = paper.fact_check;
+                // Update UI with response data
+                currentPaperContent = data.text;
+                document.getElementById('paperTitle').textContent = `${file.name} (${data.category || 'Uncategorized'})`;
+                document.getElementById('childSummary').textContent = data.summaries.child;
+                document.getElementById('collegeSummary').textContent = data.summaries.college;
+                document.getElementById('phdSummary').textContent = data.summaries.phd;
+                document.getElementById('citationsList').textContent = data.citations;
+                document.getElementById('findingsList').textContent = data.findings;
+                document.getElementById('factCheckList').textContent = data.factCheck;
+
                 document.getElementById('statsText').innerHTML = `
-                    IN: ${paper.input_tokens} 📘 
-                    OUT: ${paper.output_tokens} 📘 
-                    <span class="cost">$${paper.cost} 💰</span>
+                    IN: ${data.stats.inputTokens} 📘 
+                    OUT: ${data.stats.outputTokens} 📘 
+                    <span class="cost">$${data.stats.cost} 💰</span>
                 `;
+
+                // Reset UI states
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('progressBar').style.display = 'none';
                 document.getElementById('results').style.display = 'block';
                 document.getElementById('chatMessages').innerHTML = '';
+
+                // Refresh data
+                await Promise.all([
+                    loadCategories(),
+                    loadRecentPapers(),
+                    loadGlobalStats()
+                ]);
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Error processing file: ' + error.message;
             }
-    
-        </script>
-    </body>
-    </html>
+        }
+        // Data loading functions
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/categories`, {
+                    credentials: 'include'
+                });
+                const categories = await response.json();
+                
+                const categoryList = document.getElementById('categoryList');
+                categoryList.innerHTML = categories.map(category => `
+                    <button 
+                        class="category-button ${currentCategory === category ? 'active' : ''}" 
+                        onclick="loadPapersByCategory('${category}')"
+                    >
+                        ${category}
+                    </button>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        async function loadPapersByCategory(category) {
+            try {
+                currentCategory = category;
+                await loadCategories();
+                
+                const response = await fetch(`${API_BASE_URL}/api/papers/${category}`, {
+                    credentials: 'include'
+                });
+                const papers = await response.json();
+                
+                const container = document.getElementById('recentPapers');
+                if (papers.length === 0) {
+                    container.innerHTML = `<p>No papers found in the ${category} category.</p>`;
+                    return;
+                }
+                
+                container.innerHTML = papers.map(paper => `
+                    <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper).replace(/"/g, '&quot;')})">
+                        <h3>${paper.title}</h3>
+                        <div class="paper-meta">
+                            <span class="category-tag">${paper.category}</span>
+                            <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading papers by category:', error);
+            }
+        }
+
+        async function loadRecentPapers() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/recent`, {
+                    credentials: 'include'
+                });
+                const papers = await response.json();
+                
+                const container = document.getElementById('recentPapers');
+                container.innerHTML = papers.map(paper => `
+                    <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper).replace(/"/g, '&quot;')})">
+                        <h3>${paper.title}</h3>
+                        <div class="paper-meta">
+                            <span class="category-tag">${paper.category || 'Uncategorized'}</span>
+                            <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading recent papers:', error);
+            }
+        }
+
+        async function loadGlobalStats() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stats`, {
+                    credentials: 'include'
+                });
+                const stats = await response.json();
+                
+                document.getElementById('globalStats').innerHTML = `
+                    <div class="stat-card">
+                        <h3>Papers Analyzed</h3>
+                        <div class="stat-value">${stats.total_papers || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg. Processing Time</h3>
+                        <div class="stat-value">${stats.avg_processing_time ? (stats.avg_processing_time/1000).toFixed(1) : 0}s</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Cost</h3>
+                        <div class="stat-value">$${stats.total_cost ? stats.total_cost.toFixed(2) : '0.00'}</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            if (!currentPaperContent) {
+                const messagesContainer = document.getElementById('chatMessages');
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">Please upload or select a paper first.</div>
+                `;
+                return;
+            }
+
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML += `
+                <div class="message user-message">${message}</div>
+            `;
+            input.value = '';
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        message,
+                        paperContent: currentPaperContent 
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">${data.response}</div>
+                `;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (error) {
+                console.error('Error sendingmessage:', error);
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">Sorry, there was an error processing your question.</div>
+                `;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Paper details display
+        function showPaperDetails(paper) {
+            currentPaperContent = paper.text;
+            document.getElementById('paperTitle').textContent = `${paper.title} (${paper.category || 'Uncategorized'})`;
+            document.getElementById('childSummary').textContent = paper.child_summary;
+            document.getElementById('collegeSummary').textContent = paper.college_summary;
+            document.getElementById('phdSummary').textContent = paper.phd_summary;
+            document.getElementById('citationsList').textContent = paper.citations;
+            document.getElementById('findingsList').textContent = paper.findings;
+            document.getElementById('factCheckList').textContent = paper.fact_check;
+            document.getElementById('statsText').innerHTML = `
+                IN: ${paper.input_tokens} 📘 
+                OUT: ${paper.output_tokens} 📘 
+                <span class="cost">$${paper.cost} 💰</span>
+            `;
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('chatMessages').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
