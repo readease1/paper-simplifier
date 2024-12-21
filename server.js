@@ -13,7 +13,7 @@ require('dotenv').config();
 let db;
 (async () => {
     db = await open({
-        filename: 'papers.db',
+        filename: process.env.NODE_ENV === 'production' ? '/tmp/papers.db' : 'papers.db',
         driver: sqlite3.Database
     });
 
@@ -39,6 +39,11 @@ let db;
 
 const app = express();
 
+// Initialize OpenAI with proper naming
+const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+});
+
 // Define the upload directory and configure multer
 const uploadDir = process.env.NODE_ENV === 'production' ? '/tmp/uploads' : './uploads';
 
@@ -57,7 +62,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Set up CORS with specific origins
+// Fixed CORS settings
 app.use(cors({
     origin: ['https://paper-simplifier.onrender.com', 'http://localhost:3000'],
     methods: ['GET', 'POST'],
@@ -74,7 +79,7 @@ const queue = [];
 // Extract citations from text
 async function extractCitations(text) {
     try {
-        const response = await openAI.chat.completions.create({
+        const response = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
             messages: [{ 
                 role: "user", 
@@ -93,7 +98,7 @@ async function extractCitations(text) {
 // Extract key findings
 async function extractKeyFindings(text) {
     try {
-        const response = await openAI.chat.completions.create({
+        const response = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
             messages: [{ 
                 role: "user", 
@@ -108,7 +113,6 @@ async function extractKeyFindings(text) {
         return 'Error extracting key findings';
     }
 }
-
 // Helper function to generate summaries
 async function generateSummaries(text) {
     const startTime = Date.now();
@@ -119,7 +123,7 @@ async function generateSummaries(text) {
     try {
         // Generate summaries for each level
         for (const level of levels) {
-            const response = await openAI.chat.completions.create({
+            const response = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 messages: [{ 
                     role: "user", 
@@ -145,8 +149,8 @@ async function generateSummaries(text) {
             summaries,
             citations,
             findings,
-            text: text,  // Include the full text in the response
-            rawText: text,  // Additional field for raw text
+            text: text,
+            rawText: text,
             stats: {
                 inputTokens: totalTokens.input,
                 outputTokens: totalTokens.output,
@@ -160,7 +164,7 @@ async function generateSummaries(text) {
     }
 }
 
-// Chat endpoint with improved content handling
+// Chat endpoint
 app.post('/api/chat', async (req, res) => {
     try {
         console.log('Received chat request');
@@ -174,7 +178,7 @@ app.post('/api/chat', async (req, res) => {
             const lastPaper = await db.get('SELECT text FROM papers ORDER BY timestamp DESC LIMIT 1');
             if (lastPaper && lastPaper.text) {
                 console.log('Retrieved paper content from database');
-                const response = await openAI.chat.completions.create({
+                const response = await openai.chat.completions.create({
                     model: "gpt-3.5-turbo",
                     messages: [
                         { 
@@ -199,7 +203,7 @@ Question about this paper: ${message}`
         }
 
         console.log('Sending request to OpenAI');
-        const response = await openAI.chat.completions.create({
+        const response = await openai.chat.completions.create({
             model: "gpt-3.5-turbo",
             messages: [
                 { 
@@ -234,59 +238,68 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
         }
 
         console.log('File received:', req.file.originalname);
-        const dataBuffer = require('fs').readFileSync(req.file.path);
-        console.log('File read successfully, size:', dataBuffer.length);
-        
-        const data = await pdfParse(dataBuffer);
-        console.log('PDF parsed successfully, text length:', data.text.length);
+        try {
+            const dataBuffer = fs.readFileSync(req.file.path);
+            console.log('File read successfully, size:', dataBuffer.length);
+            
+            const data = await pdfParse(dataBuffer);
+            console.log('PDF parsed successfully, text length:', data.text.length);
 
-        if (isProcessing) {
-            queue.push({ text: data.text, res });
-            return;
+            if (isProcessing) {
+                queue.push({ text: data.text, res });
+                return;
+            }
+
+            isProcessing = true;
+            const result = await generateSummaries(data.text);
+            
+            // Save to database
+            await db.run(`
+                INSERT INTO papers (
+                    title, text, child_summary, college_summary, phd_summary, 
+                    citations, key_findings, input_tokens, output_tokens, 
+                    cost, processing_time
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                req.file.originalname,
+                data.text,
+                result.summaries.child,
+                result.summaries.college,
+                result.summaries.phd,
+                result.citations,
+                result.findings,
+                result.stats.inputTokens,
+                result.stats.outputTokens,
+                result.stats.cost,
+                result.stats.processingTime
+            ]);
+
+            isProcessing = false;
+
+            if (queue.length > 0) {
+                const next = queue.shift();
+                generateSummaries(next.text)
+                    .then(sum => next.res.json(sum))
+                    .catch(err => next.res.status(500).json({ error: err.message }));
+            }
+
+            res.json({
+                ...result,
+                rawText: data.text
+            });
+
+        } catch (fileError) {
+            console.error('File processing error:', fileError);
+            throw new Error(`File processing failed: ${fileError.message}`);
         }
-
-        isProcessing = true;
-        const result = await generateSummaries(data.text);
-        
-        // Save to database
-        await db.run(`
-            INSERT INTO papers (
-                title, text, child_summary, college_summary, phd_summary, 
-                citations, key_findings, input_tokens, output_tokens, 
-                cost, processing_time
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-            req.file.originalname,
-            data.text,
-            result.summaries.child,
-            result.summaries.college,
-            result.summaries.phd,
-            result.citations,
-            result.findings,
-            result.stats.inputTokens,
-            result.stats.outputTokens,
-            result.stats.cost,
-            result.stats.processingTime
-        ]);
-
-        isProcessing = false;
-
-        if (queue.length > 0) {
-            const next = queue.shift();
-            generateSummaries(next.text)
-                .then(sum => next.res.json(sum))
-                .catch(err => next.res.status(500).json({ error: err.message }));
-        }
-
-        res.json({
-            ...result,
-            rawText: data.text  // Include raw text in response
-        });
 
     } catch (error) {
         console.error('Error processing request:', error);
         isProcessing = false;
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: error.message,
+            details: error.stack
+        });
     }
 });
 
