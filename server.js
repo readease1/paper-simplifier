@@ -44,6 +44,7 @@ let db;
                 citations TEXT,
                 key_findings TEXT,
                 fact_check TEXT,
+                category TEXT,
                 input_tokens INTEGER,
                 output_tokens INTEGER,
                 cost REAL,
@@ -165,6 +166,34 @@ ${text.substring(0, 2000)}...`
     }
 }
 
+async function determineCategory(text) {
+    try {
+        console.log('Determining paper category...');
+        const response = await openAI.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a research paper categorization assistant. Categorize papers into exactly ONE of these categories: Sports, Medicine, Technology, Science, Business, Psychology, Education, Arts, Environment, Politics. Choose the most relevant category based on the content."
+                },
+                {
+                    role: "user",
+                    content: `Categorize this academic paper into one of the predefined categories. Analyze the content and provide ONLY the category name, nothing else:
+
+${text.substring(0, 2000)}...`
+                }
+            ],
+            max_tokens: 50
+        });
+        const category = response.choices[0].message.content.trim();
+        console.log('Category determined:', category);
+        return category;
+    } catch (error) {
+        console.error('Error determining category:', error);
+        return 'Uncategorized';
+    }
+}
+
 // Helper function to generate summaries with enhanced error handling
 async function generateSummaries(text) {
     const startTime = Date.now();
@@ -188,11 +217,12 @@ async function generateSummaries(text) {
             totalTokens.output += response.usage.completion_tokens;
         }
 
-        // Extract citations, key findings, and fact check in parallel
-        const [citations, findings, factCheck] = await Promise.all([
+        // Extract citations, key findings, fact check, and category in parallel
+        const [citations, findings, factCheck, category] = await Promise.all([
             extractCitations(text),
             extractKeyFindings(text),
-            checkFactualAccuracy(text)
+            checkFactualAccuracy(text),
+            determineCategory(text)
         ]);
 
         const processingTime = Date.now() - startTime;
@@ -202,7 +232,8 @@ async function generateSummaries(text) {
             summaries,
             citations,
             findings,
-            factCheck, // Add fact check to the response
+            factCheck,
+            category,
             text: text,
             stats: {
                 inputTokens: totalTokens.input,
@@ -297,9 +328,9 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
             await db.run(`
                 INSERT INTO papers (
                     title, text, child_summary, college_summary, phd_summary, 
-                    citations, key_findings, fact_check, input_tokens, output_tokens, 
+                    citations, key_findings, fact_check, category, input_tokens, output_tokens, 
                     cost, processing_time
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 req.file.originalname,
                 data.text,
@@ -309,6 +340,7 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
                 result.citations,
                 result.findings,
                 result.factCheck,
+                result.category,
                 result.stats.inputTokens,
                 result.stats.outputTokens,
                 result.stats.cost,
@@ -358,6 +390,39 @@ app.get('/api/recent', async (req, res) => {
         res.json(papers);
     } catch (error) {
         console.error('Error fetching recent papers:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.get('/api/categories', async (req, res) => {
+    try {
+        console.log('Fetching categories...');
+        const categories = await db.all(`
+            SELECT DISTINCT category 
+            FROM papers 
+            WHERE category IS NOT NULL 
+            ORDER BY category
+        `);
+        res.json(categories.map(c => c.category));
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Get papers by category
+app.get('/api/papers/:category', async (req, res) => {
+    try {
+        const category = req.params.category;
+        console.log('Fetching papers for category:', category);
+        const papers = await db.all(`
+            SELECT * FROM papers 
+            WHERE category = ? 
+            ORDER BY timestamp DESC
+        `, [category]);
+        res.json(papers);
+    } catch (error) {
+        console.error('Error fetching papers by category:', error);
         res.status(500).json({ error: error.message });
     }
 });
