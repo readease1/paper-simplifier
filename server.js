@@ -125,6 +125,11 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
 
+// Handle HEAD requests for the root path
+app.head('/', (req, res) => {
+    res.status(200).end();
+});
+
 // Process queue
 let isProcessing = false;
 const queue = [];
