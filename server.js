@@ -91,11 +91,27 @@ app.use(cors({
         'http://localhost:3000',
         'https://readease.wtf'
     ],
-    methods: ['GET', 'POST'],
-    credentials: true
+    methods: ['GET', 'POST', 'OPTIONS'], // Added OPTIONS
+    credentials: true,
+    optionsSuccessStatus: 200
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static('public'));
+
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).json({
+            status: 'ok'
+        });
+    }
+    
+    next();
+});
 
 // Process queue
 let isProcessing = false;
@@ -356,7 +372,11 @@ Question about this paper: ${message}`
 // Enhanced API endpoint to process paper with improved error handling
 app.post('/api/process', upload.single('file'), async (req, res) => {
     try {
-        console.log('Processing request...');
+        console.log('Processing request...', {
+            method: req.method,
+            headers: req.headers,
+            file: req.file
+        });
         
         if (!req.file) {
             console.error('No file uploaded');
