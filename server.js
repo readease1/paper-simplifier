@@ -43,6 +43,7 @@ let db;
                 phd_summary TEXT,
                 citations TEXT,
                 key_findings TEXT,
+                fact_check TEXT,
                 input_tokens INTEGER,
                 output_tokens INTEGER,
                 cost REAL,
@@ -137,9 +138,35 @@ async function extractKeyFindings(text) {
     }
 }
 
+async function checkFactualAccuracy(text) {
+    try {
+        console.log('Checking factual accuracy...');
+        const response = await openAI.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are a fact-checking assistant specialized in academic papers. Focus on: 1) Verifying numerical claims and statistics, 2) Identifying potential inconsistencies or errors, 3) Flagging unsupported claims or potential misinformation. Be specific and cite the relevant parts of the text."
+                },
+                {
+                    role: "user",
+                    content: `Analyze this academic paper for numerical accuracy and potential misinformation. Focus on statistics, data claims, and any suspicious assertions:
+
+${text.substring(0, 2000)}...`
+                }
+            ],
+            max_tokens: 500
+        });
+        console.log('Fact check completed');
+        return response.choices[0].message.content;
+    } catch (error) {
+        console.error('Error checking factual accuracy:', error);
+        return 'Error performing fact check: ' + error.message;
+    }
+}
+
 // Helper function to generate summaries with enhanced error handling
 async function generateSummaries(text) {
-    console.log('Starting summary generation...');
     const startTime = Date.now();
     const levels = ['child', 'college', 'phd'];
     const summaries = {};
@@ -148,30 +175,24 @@ async function generateSummaries(text) {
     try {
         // Generate summaries for each level
         for (const level of levels) {
-            try {
-                console.log(`Generating ${level} summary...`);
-                const response = await openAI.chat.completions.create({
-                    model: "gpt-3.5-turbo",
-                    messages: [{ 
-                        role: "user", 
-                        content: `Summarize this academic paper for a ${level} level reader: ${text.substring(0, 2000)}...`
-                    }],
-                    max_tokens: 200
-                });
-                summaries[level] = response.choices[0].message.content;
-                totalTokens.input += response.usage.prompt_tokens;
-                totalTokens.output += response.usage.completion_tokens;
-                console.log(`${level} summary generated successfully`);
-            } catch (error) {
-                console.error(`Error generating ${level} summary:`, error);
-                summaries[level] = `Error generating summary: ${error.message}`;
-            }
+            const response = await openAI.chat.completions.create({
+                model: "gpt-3.5-turbo",
+                messages: [{ 
+                    role: "user", 
+                    content: `Summarize this academic paper for a ${level} level reader: ${text.substring(0, 2000)}...`
+                }],
+                max_tokens: 200
+            });
+            summaries[level] = response.choices[0].message.content;
+            totalTokens.input += response.usage.prompt_tokens;
+            totalTokens.output += response.usage.completion_tokens;
         }
 
-        // Extract citations and key findings in parallel
-        const [citations, findings] = await Promise.all([
+        // Extract citations, key findings, and fact check in parallel
+        const [citations, findings, factCheck] = await Promise.all([
             extractCitations(text),
-            extractKeyFindings(text)
+            extractKeyFindings(text),
+            checkFactualAccuracy(text)
         ]);
 
         const processingTime = Date.now() - startTime;
@@ -181,6 +202,7 @@ async function generateSummaries(text) {
             summaries,
             citations,
             findings,
+            factCheck, // Add fact check to the response
             text: text,
             stats: {
                 inputTokens: totalTokens.input,
@@ -275,9 +297,9 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
             await db.run(`
                 INSERT INTO papers (
                     title, text, child_summary, college_summary, phd_summary, 
-                    citations, key_findings, input_tokens, output_tokens, 
+                    citations, key_findings, fact_check, input_tokens, output_tokens, 
                     cost, processing_time
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 req.file.originalname,
                 data.text,
@@ -286,6 +308,7 @@ app.post('/api/process', upload.single('file'), async (req, res) => {
                 result.summaries.phd,
                 result.citations,
                 result.findings,
+                result.factCheck,
                 result.stats.inputTokens,
                 result.stats.outputTokens,
                 result.stats.cost,
