@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadEase - Academic Paper Simplifier</title>
+    <style>
+        :root {
+            --bg-primary: #000000;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #2e1065;
+            --text-primary: #ffffff;
+            --text-secondary: #e5e7eb;
+            --accent: #a3e635;
+            --transition: all 0.3s ease;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f3f4f6;
+            --bg-tertiary: #e5e7eb;
+            --text-primary: #1a1a1a;
+            --text-secondary: #4b5563;
+            --accent: #2563eb;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: var(--transition);
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            border: none;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            color: var(--text-primary);
+        }
+        h1 {
+            color: var(--accent);
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .token-box {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .token-text {
+            color: var(--accent);
+        }
+        .paper-box {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+        .upload-box {
+            border: 2px dashed var(--bg-tertiary);
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        .upload-box:hover {
+            border-color: var(--accent);
+        }
+        .summaries-box {
+            background: var(--bg-tertiary);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .summary-section {
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+        }
+        .summary-section:before {
+            content: '💡';
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        .summary-section.college:before {
+            content: '🎓';
+        }
+        .summary-section.phd:before {
+            content: '🔬';
+        }
+        .paper-title {
+            color: var(--accent);
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+        .paper-link {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 15px;
+        }
+        .status-box {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-icon {
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+        .stats {
+            float: right;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        .cost {
+            color: var(--accent);
+        }
+        .citations-box, .findings-box {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 6px;
+        }
+        .recent-papers {
+            margin-top: 40px;
+            background: var(--bg-secondary);
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .paper-card {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .paper-card:hover {
+            background: #3b1a79;
+        }
+        .readability-scores {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .score-card {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .export-button {
+            background: var(--accent);
+            color: var(--bg-primary);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .export-button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        .chat-container {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            margin-top: 20px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .chat-messages {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .user-message {
+            background: var(--bg-tertiary);
+            align-self: flex-end;
+        }
+        .ai-message {
+            background: var(--accent);
+            color: var(--bg-primary);
+            align-self: flex-start;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--accent);
+        }
+        .error {
+            color: #ef4444;
+            text-align: center;
+            padding: 10px;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-tertiary);
+            position: relative;
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 20%;
+            background: var(--accent);
+            animation: progress 2s infinite;
+        }
+        @keyframes progress {
+            0% { left: -20%; }
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙</button>
+        <h1>readease</h1>
+        <p class="subtitle">
+            An autonomous AI agent powered by OpenAI's GPT-3.5 model, making academic papers 
+            accessible for different education levels 📚 🎓 🔍
+        </p>
+        
+        <div class="token-box">
+            Research funded by <span class="token-text">$READ</span> token
+        </div>
+
+        <div class="progress-bar" id="progressBar"></div>
+
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" hidden accept=".pdf" onchange="handleFileUpload(event)">
+            Drop your academic paper here or click to upload (PDF only)
+        </div>
+
+        <div id="loading">Processing paper...</div>
+        <div id="error" class="error"></div>
+
+        <div class="stat-grid" id="globalStats">
+            <!-- Global stats will be populated here -->
+        </div>
+
+        <div id="results" class="paper-box" style="display: none">
+            <div id="paperTitle" class="paper-title"></div>
+            
+            <div class="summaries-box" id="summaries">
+                <div class="summary-section">
+                    <strong>For a child:</strong>
+                    <div id="childSummary"></div>
+                </div>
+                
+                <div class="summary-section college">
+                    <strong>For college students:</strong>
+                    <div id="collegeSummary"></div>
+                </div>
+                
+                <div class="summary-section phd">
+                    <strong>For PhD students:</strong>
+                    <div id="phdSummary"></div>
+                </div>
+            </div>
+            
+            <div class="citations-box">
+                <h3>Citations</h3>
+                <div id="citationsList"></div>
+            </div>
+
+            <div class="findings-box">
+                <h3>Key Findings</h3>
+                <div id="findingsList"></div>
+            </div>
+            
+            <div class="readability-scores">
+                <div class="score-card">
+                    <h4>Flesch Reading Ease</h4>
+                    <div class="score-value" id="fleschScore">-</div>
+                </div>
+                <div class="score-card">
+                    <h4>Grade Level</h4>
+                    <div class="score-value" id="gradeLevel">-</div>
+                </div>
+                <div class="score-card">
+                    <h4>Technical Terms</h4>
+                    <div class="score-value" id="technicalTerms">-</div>
+                </div>
+            </div>
+
+            <div class="export-buttons">
+                <button class="export-button" onclick="exportToPDF()">Export as PDF</button>
+                <button class="export-button" onclick="exportToWord()">Export as Word</button>
+            </div>
+            
+            <div class="status-box">
+                <span class="status-icon">✓</span>
+                Processing Complete
+            </div>
+            
+            <div class="stats">
+                <span id="statsText"></span>
+            </div>
+
+            <div class="chat-container" id="chatContainer">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="chat-input">
+                    <input type="text" placeholder="Ask a question about this paper..." id="chatInput">
+                    <button class="export-button" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="recent-papers">
+            <h2>Recently Analyzed Papers</h2>
+            <div id="recentPapers"></div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', async () => {
+            await loadRecentPapers();
+            await loadGlobalStats();
+        });
+
+        function toggleTheme() {
+            const body = document.body;
+            const theme = body.getAttribute('data-theme');
+            if (theme === 'light') {
+                body.removeAttribute('data-theme');
+                document.getElementById('themeToggle').textContent = '🌙';
+            } else {
+                body.setAttribute('data-theme', 'light');
+                document.getElementById('themeToggle').textContent = '☀️';
+            }
+        }
+
+        async function loadRecentPapers() {
+            try {
+                const response = await fetch('http://localhost:3000/api/recent');
+                const papers = await response.json();
+                
+                const container = document.getElementById('recentPapers');
+                container.innerHTML = papers.map(paper => `
+                    <div class="paper-card" onclick="showPaperDetails(${JSON.stringify(paper)})">
+                        <h3>${paper.title}</h3>
+                        <small>${new Date(paper.timestamp).toLocaleString()}</small>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading recent papers:', error);
+            }
+        }
+
+        async function loadGlobalStats() {
+            try {
+                const response = await fetch('http://localhost:3000/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('globalStats').innerHTML = `
+                    <div class="stat-card">
+                        <h3>Papers Analyzed</h3>
+                        <div class="stat-value">${stats.total_papers || 0}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Avg. Processing Time</h3>
+                        <div class="stat-value">${stats.avg_processing_time ? (stats.avg_processing_time/1000).toFixed(1) : 0}s</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Total Cost</h3>
+                        <div class="stat-value">$${stats.total_cost ? stats.total_cost.toFixed(2) : '0.00'}</div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function calculateReadability(text) {
+            const words = text.trim().split(/\s+/).length;
+            const sentences = text.split(/[.!?]+/).length;
+            const syllables = text.split(/[aeiou]+/i).length - 1;
+            
+            const flesch = 206.835 - 1.015 * (words / sentences) - 84.6 * (syllables / words);
+            const gradeLevel = 0.39 * (words / sentences) + 11.8 * (syllables / words) - 15.59;
+            const technicalTerms = text.match(/[A-Z][a-z]{8,}|[a-z]{8,}/g)?.length || 0;
+            
+            return {
+                flesch: Math.round(flesch),
+                gradeLevel: Math.round(gradeLevel),
+                technicalTerms
+            };
+        }
+
+        function showPaperDetails(paper) {
+            document.getElementById('paperTitle').textContent = paper.title;
+            document.getElementById('childSummary').textContent = paper.child_summary;
+            document.getElementById('collegeSummary').textContent = paper.college_summary;
+            document.getElementById('phdSummary').textContent = paper.phd_summary;
+            document.getElementById('citationsList').textContent = paper.citations;
+            document.getElementById('findingsList').textContent = paper.key_findings;
+            document.getElementById('statsText').innerHTML = `
+                IN: ${paper.input_tokens} 📘 
+                OUT: ${paper.output_tokens} 📘 
+                <span class="cost">$${paper.cost} 💰</span>
+            `;
+            document.getElementById('results').style.display = 'block';
+        }
+
+        async function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('progressBar').style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('http://localhost:3000/api/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to process file');
+                }
+
+                const data = await response.json();
+                
+                document.getElementById('paperTitle').textContent = file.name;
+                document.getElementById('childSummary').textContent = data.summaries.child;
+                document.getElementById('collegeSummary').textContent = data.summaries.college;
+                document.getElementById('phdSummary').textContent = data.summaries.phd;
+                document.getElementById('citationsList').textContent = data.citations;
+                document.getElementById('findingsList').textContent = data.findings;
+
+                // Calculate and display readability scores
+                const scores = calculateReadability(data.summaries.college);
+                document.getElementById('fleschScore').textContent = scores.flesch;
+                document.getElementById('gradeLevel').textContent = scores.gradeLevel;
+                document.getElementById('technicalTerms').textContent = scores.technicalTerms;
+
+                document.getElementById('statsText').innerHTML = `
+                    IN: ${data.stats.inputTokens} 📘 
+                    OUT: ${data.stats.outputTokens} 📘 
+                    <span class="cost">$${data.stats.cost} 💰</span>
+                `;
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('results').style.display = 'block';
+
+                // Refresh stats
+                await loadRecentPapers();
+                await loadGlobalStats();
+
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('progressBar').style.display = 'none';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Error processing file: ' + error.message;
+            }
+        }
+
+        // Chat functionality
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const messagesContainer = document.getElementById('chatMessages');
+            messagesContainer.innerHTML += `
+                <div class="message user-message">${message}</div>
+            `;
+            input.value = '';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+
+                const data = await response.json();
+                messagesContainer.innerHTML += `
+                    <div class="message ai-message">${data.response}</div>
+                `;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        }
+
+        document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Export functions (these will need server implementation)
+        async function exportToPDF() {
+            try {
+                const response = await fetch('http://localhost:3000/api/export/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: document.getElementById('results').innerHTML })
+                });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'paper-analysis.pdf';
+                a.click();
+            } catch (error) {
+                console.error('Error exporting to PDF:', error);
+            }
+        }
+
+        async function exportToWord() {
+            try {
+                const response = await fetch('http://localhost:3000/api/export/word', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: document.getElementById('results').innerHTML })
+                });
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'paper-analysis.docx';
+                a.click();
+            } catch (error) {
+                console.error('Error exporting to Word:', error);
+            }
+        }
+    </script>
+</body>
+</html>
