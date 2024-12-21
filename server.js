@@ -59,7 +59,7 @@ const upload = multer({ storage: storage });
 
 // Set up CORS with specific origins
 app.use(cors({
-    origin: ['https://your-webflow-site.com', 'http://localhost:3000'],
+    origin: ['https://paper-simplifier.onrender.com', 'http://localhost:3000'],
     methods: ['GET', 'POST'],
     credentials: true
 }));
