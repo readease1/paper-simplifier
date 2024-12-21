@@ -295,7 +295,7 @@
             position: relative;
             margin: 20px 0;
             display: none;
-            overflow: hidden; /* Add this line */
+            overflow: hidden;
         }
         
         .progress-bar::after {
@@ -309,7 +309,7 @@
         
         @keyframes progress {
             0% { left: -20%; }
-            100% { left: 100%; transform: translateX(-100%); } /* Update this line */
+            100% { left: 100%; transform: translateX(-100%); }
         }
         .paper-meta {
             display: flex;
@@ -324,7 +324,6 @@
             border-radius: 12px;
             font-size: 0.8rem;
         }
-        /* New FAQ Terminal Styles */
         .faq-button {
             background: var(--accent);
             color: var(--bg-primary);
@@ -540,13 +539,13 @@
             await loadGlobalStats();
         });
 
-        // Add new FAQ functions
         function showFAQ() {
             const overlay = document.getElementById('faqOverlay');
-            const terminalText = document.getElementById('terminalText');
+            const terminal = document.getElementById('terminalText');
             overlay.style.display = 'flex';
-            
-            const text = `> > Initializing ReadEase AI...
+            terminal.textContent = '';
+
+            const text = `> Initializing ReadEase AI...
 > System boot complete
 > Establishing connection...
 > Connection secured
@@ -584,18 +583,16 @@ The more I learn, the better I can help others understand complex topics. Togeth
 Remember: I'm free to use, and I'm here to help students, researchers, and curious minds navigate the vast ocean of academic knowledge. 📚
 
 > End of introduction
-> Awaiting further interaction...
-`;
+> Awaiting further interaction...`;
             let i = 0;
             function typeWriter() {
                 if (i < text.length) {
-                    terminalText.textContent += text.charAt(i);
+                    terminal.textContent += text.charAt(i);
                     terminalContent.scrollTop = terminalContent.scrollHeight;
                     i++;
                     setTimeout(typeWriter, 10);
                 }
             }
-            terminalText.textContent = '';
             typeWriter();
         }
 
@@ -605,7 +602,9 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function loadCategories() {
             try {
-                const response = await fetch('https://readease.wtf/api/categories');
+                const response = await fetch('/api/categories', {
+                    credentials: 'include'
+                });
                 const categories = await response.json();
                 
                 const categoryList = document.getElementById('categoryList');
@@ -625,9 +624,11 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
         async function loadPapersByCategory(category) {
             try {
                 currentCategory = category;
-                await loadCategories(); // Refresh category buttons to show active state
+                await loadCategories();
                 
-                const response = await fetch(`https://readease.wtf/api/papers/${category}`);
+                const response = await fetch(`/api/papers/${category}`, {
+                    credentials: 'include'
+                });
                 const papers = await response.json();
                 
                 const container = document.getElementById('recentPapers');
@@ -664,7 +665,9 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function loadRecentPapers() {
             try {
-                const response = await fetch('https://readease.wtf/api/recent');
+                const response = await fetch('/api/recent', {
+                    credentials: 'include'
+                });
                 const papers = await response.json();
                 
                 const container = document.getElementById('recentPapers');
@@ -684,7 +687,9 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function loadGlobalStats() {
             try {
-                const response = await fetch('https://readease.wtf/api/stats');
+                const response = await fetch('/api/stats', {
+                    credentials: 'include'
+                });
                 const stats = await response.json();
                 
                 document.getElementById('globalStats').innerHTML = `
@@ -753,13 +758,14 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
             formData.append('file', file);
 
             try {
-                const response = await fetch('https://readease.wtf/api/process', {
+                const response = await fetch('/api/process', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    credentials: 'include'
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to process file');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
@@ -795,6 +801,7 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
                 await loadGlobalStats();
 
             } catch (error) {
+                console.error('Upload error:', error);
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('progressBar').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
@@ -823,13 +830,14 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
             try {
                 console.log('Sending chat request with paper content length:', currentPaperContent.length);
-                const response = await fetch('https://readease.wtf/api/chat', {
+                const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         message,
                         paperContent: currentPaperContent 
-                    })
+                    }),
+                    credentials: 'include'
                 });
 
                 const data = await response.json();
@@ -853,10 +861,11 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function exportToPDF() {
             try {
-                const response = await fetch('https://readease.wtf/api/export/pdf', {
+                const response = await fetch('/api/export/pdf', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: document.getElementById('results').innerHTML })
+                    body: JSON.stringify({ content: document.getElementById('results').innerHTML }),
+                    credentials: 'include'
                 });
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
@@ -871,10 +880,11 @@ Remember: I'm free to use, and I'm here to help students, researchers, and curio
 
         async function exportToWord() {
             try {
-                const response = await fetch('https://readease.wtf/api/export/word', {
+                const response = await fetch('/api/export/word', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: document.getElementById('results').innerHTML })
+                    body: JSON.stringify({ content: document.getElementById('results').innerHTML }),
+                    credentials: 'include'
                 });
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
